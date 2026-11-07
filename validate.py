@@ -1,21 +1,22 @@
 """
-L2Q3 数据模型校验器 / 声明检查器（真校验版）
+L2Q3 Validator / Claim checker (validation version)
 
-用法:
+Uso:
     python validate.py
 
-本文件把 `schema.yaml` 当作唯一真实数据模型来源，用内置模拟数据
-生成「长表」(Response, 含 estat 与处理后的值 processed)，计算每个指标的
-Denominator(n) 与 Metric 值，并跑一组「声明检查」：
+Este fichero trata `schema.yaml` como la única fuente autoritativa del modelo
+de datos, genera una «tabla larga» (Response, con estat y valores procesados)
+con datos simulados integrados, calcula el Denominator(n) de cada métrica y el
+valor de la métrica, y corre un conjunto de «comprobaciones de afirmación»:
 
-  - 每个百分比是否有分母 n
-  - 是否有分波记录（T0/T1），可谈纵向
-  - 分组 n<30 是否被正确标记 ⚠ 而不展示为结论
-  - 量表方向（如 C4/estres = negative）是否已翻转为正向
-  - 不识别任何人：数据来源仅用虚拟 id，无姓名/学号/邮箱
+  - ¿cada percentual tiene su denominador n?
+  - ¿hay registro por onda (T0/T1), se puede hablar de longitudinal?
+  - ¿los subgrups con n<30 se marcan ⚠ correctamente en lugar de mostrarse como conclusión?
+  - ¿la dirección de la escala (p. ej. C4/estres = negative) ya se invirtió a positiva?
+  - no se identifica a nadie: la fuente de datos usa solo ids virtuales, sin nombre/ nº de estudiante / correo
 
-注意：本校验器全部逻辑由真实判断构成，不再出现 `all(True for _ in ...)` 之类
-的空壳断言。
+Ojo: toda la lógica de este validador se apoya en juicios reales; ya no aparecen
+afirmaciones vacías como `all(True for _ in ...)`.
 """
 from __future__ import annotations
 import re
@@ -23,7 +24,7 @@ import math
 import sys
 import yaml
 
-# 让 ⚠ / ✅ / ❌ 等 Unicode 符号在任何控制台下都能打印
+# Para que los símbolos Unicode ⚠ / ✅ / ❌ se puedan imprimir en cualquier terminal
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -32,28 +33,30 @@ except Exception:
 SCHEMA = yaml.safe_load(open("schema.yaml", encoding="utf-8"))
 
 # ============================================================================
-# 从 schema 快速取索引
+# Acceso rápido a partir del schema
 # ============================================================================
 QUESTIONS = {q["question_id"]: q for q in SCHEMA["questions"]}
 METRICS = {m["metric"]: m for m in SCHEMA["metrics"]}
 DENOMS = {d["name"]: d for d in SCHEMA["denominators"]}
 WAVE_PANEL = SCHEMA["wave_panel"]
 
-# 隐私规则：分组 n<30 不展示为结论
+# Regla de privacidad: subgrups con n<30 no se muestran como conclusión
 MIN_N = 30
 
 
 # ============================================================================
-# 模拟数据生成（约 40 名受访者，覆盖 运动者 / 非运动者 / 会员 / 非会员）
+# Generación de datos simulados (~40 respuestas, cubren: practicantes / no
+# practicantes / membres / no membres)
 # ============================================================================
-# 每条记录是一个 6 元组：
-#   (respondent_id, wave_id, question_id, raw 原始值, estat, processed 处理后的值)
-#   - raw      ：问卷原始值（量表原方向）
-#   - processed：经过方向翻转 / 归一化后、用于出指标的值
-#   - estat    ：单条答案质量标记（resposta / no_questionada / ...）
+# Cada registro es una 6-pla:
+#   (respondent_id, wave_id, question_id, raw valor original, estat, processed valor procesado)
+#   - raw      : valor original de la enquesta (en la dirección original de la escala)
+#   - processed: valor volteado según dirección / normalizado, usado para el indicador
+#   - estat    : marca de calidad de una sola respuesta (resposta / no_questionada / ...)
 #
-# 故意留一个「方向未翻转」的反例：id5 的 estres（C4，负向）processed 直接用 raw，
-# 没有被翻成正向 —— 校验器应能捕获它。
+# A propósito se deja un contra-ejemplo «dirección sin voltear»: el estres (C4,
+# negativo) de id5 usa processed = raw directamente, sin voltear a positivo; el
+# validador debe poder capturarlo.
 def build_mock():
     rows = []
 
@@ -63,12 +66,12 @@ def build_mock():
         rows.append((rid, wave, qid, raw, estat, processed))
 
     N = 40
-    flip = lambda a: 6 - a  # 1..5 量表的正向翻转
+    flip = lambda a: 6 - a  # volteo a positivo para escala 1..5
 
     for i in range(1, N + 1):
         rid = f"id{i}"
 
-        # A3 situacio 分组枢纽：i<=20 规律(1), 21..30 近一年(2), 31..40 不运动(3)
+        # A3 situacio clau de grup: i<=20 Regular(1), 21..30 Fa-un-any(2), 31..40 No-practica(3)
         if i <= 20:
             situ = 1
         elif i <= 30:
@@ -78,24 +81,24 @@ def build_mock():
         movers = situ in (1, 2)
         nonmover = situ == 3
 
-        # A4 会员
+        # A4 membres
         abonat = 1 if i % 2 == 0 else 2
 
-        # 全身体量（全体）
+        # Escala de salud física (todos)
         add(rid, "T0", "generes", 1 + (i % 4))
         add(rid, "T0", "situacio", situ)
         add(rid, "T0", "abonat", abonat)
 
         if movers:
-            # B1 运动频率（按“每周天数”语义；1..6）
+            # B1 frecuencia (semántica «dies per setmana»; 1..6)
             freq = ((i * 3) % 6) + 1
             add(rid, "T0", "frecuencia", freq)
-            # B3 是否达标
+            # B3 ¿alcanza?
             add(rid, "T0", "habit_estar", (i % 3) + 1)
-            # C5 好处（运动者，正向）
+            # C5 beneficis (practicans, positivo)
             add(rid, "T0", "beneficis", ((i % 4) + 2))
         else:
-            # E1 障碍 / E2 意向（非运动者）—— 覆盖全部 7 障碍 + 4 意向字段
+            # E1 obáculos / E2 intenació (no practicans) — cubre los 7 obáculos + 4 d'intenació
             add(rid, "T0", "obstacle_1", 1 if i % 2 else 0)
             add(rid, "T0", "obstacle_2", 1 if i % 3 else 0)
             add(rid, "T0", "obstacle_3", 1 if i % 4 else 0)
@@ -108,25 +111,25 @@ def build_mock():
             add(rid, "T0", "intencio_3", ((i * 3) % 5) + 1)
             add(rid, "T0", "intencio_4", ((i * 4) % 5) + 1)
 
-        # C1/C2/C3/C4 全体（健康、情绪、睡眠、压力）
+        # C1/C2/C3/C4 todos (salud, ànim, son, estrès)
         add(rid, "T0", "salut_fisica", (i % 5) + 1)
-        add(rid, "T0", "estat_emocional", ((i * 2) % 5) + 1)
-        # C3 睡眠小时数：全体 ordered int 1..6（原 mock 漏掉此字段）
+        add(rid, "T0", "stat_emocional", ((i * 2) % 5) + 1)
+        # C3 hores de son: todos ordered int 1..6 (el mock antiguo omitía este campo)
         add(rid, "T0", "son_hores", ((i * 3) % 6) + 1)
         add(rid, "T0", "son_qualitat", ((i * 4) % 5) + 1)
-        # C4 estres：负向。正常处理应翻成正向 processed = 6 - raw。
+        # C4 estres: negativo. El procesamiento normal voltea a positivo: processed = 6 - raw.
         estres_raw = ((i * 3) % 5) + 1
-        # C4 estres 为负向量表：全体受访者均翻为正方向 processed = 6 - raw。
-        # （真实数据若出现未翻转，方向检查器会捕获并列出该条。）
+        # C4 estres es una escala negativa: todos los responden se voltean a positivo processed = 6 - raw.
+        # (si en datos reales aparece sin voltear, el checker de dirección lo captura y lista)
         add(rid, "T0", "estres", estres_raw, processed=flip(estres_raw))
 
-        # D1 归属感 / E3 纵向锚点（全体）
+        # D1 pertinença / E3 ancea longitudinal (todos)
         add(rid, "T0", "pertinenca", (i % 5) + 1)
         add(rid, "T0", "canvi_benestar", (i % 5) + 1)
-        # C6 公平/可及性感知（全体，正向）—— P1 补充
+        # C6 percepció d'accesibilidad / equitat (todos, positivo) — P1 complement
         add(rid, "T0", "accesibilidad", ((i * 2) % 5) + 1)
 
-    # T1 复测子集（自愿，id1..id8）：仅复测 E3 纵向锚点
+    # Subconjunt de remesa T1 (voluntari, id1..id8): remesa sols de l'ancea longitudinal E3
     for i in range(1, 9):
         rid = f"id{i}"
         canvi_t1 = ((i * 7) % 5) + 1
@@ -139,48 +142,49 @@ MOCK = build_mock()
 
 
 # ============================================================================
-# freq 分箱（修复 bug：必须是 5 档显式，freq==1 → "1 次/周"）
+# freq binning (bug arreglado: ha de ser 5 categorías explícitas; freq==1 → "1 setmanal")
 # ============================================================================
 def freq_bin(freq):
-    """按「每周天数」把 freq 数值归入 5 档，返回与 schema 组名一致的标签。"""
+    """Agrupar freq por «dies per setmana» en 5 categorías; devuelve etiquetas coherentes con las del schema."""
     if freq == 0:
-        return "0 天"
+        return "0 dies"
     if freq == 1:
-        return "1 次/周"
+        return "1 setmanal"
     if freq in (2, 3):
-        return "2-3 次/周"
+        return "2-3 setmanals"
     if freq in (4, 5):
-        return "4-5 次/周"
-    return "超5 次/周"   # freq > 5
+        return "4-5 setmanals"
+    return ">5 setmanals"   # freq > 5
 
 
-# 各 metric 的 value -> 组名 映射（来自 schema 语义）
-SITU_GROUP = {1: "1 规律", 2: "2 近一年", 3: "3 不运动"}
+# Mapeo value -> nombre de grup para cada métrica (semántica del schema)
+SITU_GROUP = {1: "1 Regular", 2: "2 Fa-un-any", 3: "3 No-practica"}
 ABONAT_GROUP = {1: "Sí", 2: "No"}
-# generes → metric 分组标签（pertinencia_generes 的 split_by generes 用）
+# generes → etiquetas de grup de la métrica (split_by generes de pertinencia_generes)
 GENDER_LABEL = {1: "male", 2: "female", 3: "other", 4: "other"}
 
-# 判定某字段是否为 0/1 binary（多字段指标据此报 Sí 占比）
+
+# Determina si un campo es binary 0/1 (los indicadores multi-reportan % Sí según esto)
 def is_binary(fid):
     return QUESTIONS.get(fid, {}).get("escalar") == "binary"
 
 
 # ==========================================================================
-# 1) 长表（wide）：每条答案 + 状态；并给出按 respondent 折叠的宽表视图
-# ============================================================================
-print("== 长表 Response (每行一条答案, 含 estat / processed) ==")
+# 1) Tabla larga (wide): cada respuesta + estado; vista plegada por respondent
+# ==========================================================================
+print("== Tabla larga Response (una resposta por fila, con estat / processed) ==")
 STAT_LIST = []
 for rid, wave, qid, raw, estat, processed in MOCK:
     STAT_LIST.append(dict(respondent_id=rid, wave=wave, question_id=qid,
                           valor=raw, estat=estat, processed=processed))
 for r in STAT_LIST[:20]:
     print(f"  {r['respondent_id']:<4} {r['wave']:<3} {r['question_id']:<16} "
-          f"raw={str(r['valor']):<4} processed={str(r['processed']):<4} 状态={r['estat']}")
-print("  ... (共 %d 条答案)" % len(STAT_LIST))
+          f"raw={str(r['valor']):<4} processed={str(r['processed']):<4} estado={r['estat']}")
+print(f"  ... (un total de {len(STAT_LIST)} respostes)")
 
-# 按 respondent 折叠的宽表（id, wave, 每 question_id 的值）
+# Tabla ampla plegada por respondent (id, wave, valor de cada question_id)
 QIDS = sorted({r["question_id"] for r in STAT_LIST})
-print("\n== 宽表 (每位受访者一行): id / wave / 每question_id 值 ==")
+print("\n== Tabla ampla (una fila per respondent): id / wave / valor de cada question_id ==")
 for rid in sorted({r["respondent_id"] for r in STAT_LIST})[:8]:
     person = [r for r in STAT_LIST if r["respondent_id"] == rid and r["wave"] == "T0"]
     cell = {r["question_id"]: r["valor"] for r in person}
@@ -189,26 +193,27 @@ for rid in sorted({r["respondent_id"] for r in STAT_LIST})[:8]:
 
 
 # ============================================================================
-# 2) 分母 + 指标值（按 schema metrics 的真实定义跑）
+# 2) Denominador + valor de la métrica (según la definición real de las métricas del schema)
 # ============================================================================
 print("\n== Denominator + Metric ==")
-metric_results = []   # (metric, label, n, ok, min_n, denominator) 供检查 #3 使用
+metric_results = []   # (metric, label, n, ok, min_n, denominator) para la comprobación #3
 for m in SCHEMA["metrics"]:
     by = m["by"]
     min_n = m.get("min_n", MIN_N)
     groups = m.get("groups")
     denom = m.get("denominator")
 
-    # by 可能是单字段（str）或多字段（list，如 E1 障碍 / E2 意向 拆字段）。
-    # 修复：多字段指标必须逐字段出指标；旧的 `question_id == by`（str == list）
-    # 会恒为 False，导致这些指标的 n 恒为 0 —— 这正是 L2Q3 最关键的原创模块。
+    # by puede ser campo único (str) o multi-campo (lista, como E1 obáculos / E2 intenació).
+    # Arreglo: los indicadores multi-campo deben salir campo a campo; el viejo `question_id == by`
+    # (str == lista) daría siempre False, y el n de esos índices sería siempre 0 — justo el módulo
+    # más original de L2Q3.
     if isinstance(by, list):
         fields = list(by)
-        # 每字段一行：binary → 报 Sí 占比；interval/ordinal → 报均值
-        disp = [(f, "Sí 占比" if is_binary(f) else "均值") for f in fields]
+        # Una fila por campo: binary → reporta % Sí; interval/ordinal → reporta media
+        disp = [(f, "% Sí" if is_binary(f) else "Media") for f in fields]
     else:
         fields = [by]
-        base_groups = groups if groups else ["全部"]
+        base_groups = groups if groups else ["todos"]
         disp = [(by, g) for g in base_groups]
 
     print(f"\n  [{m['metric']}] by={by} denominator={denom}")
@@ -226,7 +231,7 @@ for m in SCHEMA["metrics"]:
             elif m.get("split_by") == "generes":
                 vals_grp = [v for (_rid, v) in vals if GENDER_LABEL.get(v, "other") == label]
             else:
-                vals_grp = [v for (_rid, v) in vals]   # 无分箱指标：整组
+                vals_grp = [v for (_rid, v) in vals]   # indicador sin binning: todo el grup
         else:
             vals_grp = [v for (_rid, v) in vals]
 
@@ -234,18 +239,18 @@ for m in SCHEMA["metrics"]:
         if n == 0:
             mean = math.nan
         elif is_binary(f):
-            mean = round(100.0 * sum(1 for v in vals_grp if v == 1) / n, 2)  # Sí 占比
+            mean = round(100.0 * sum(1 for v in vals_grp if v == 1) / n, 2)  # % Sí
         else:
             mean = round(sum(vals_grp) / n, 2)
         ok = n >= min_n
-        flag = "  ⚠ n<30 不展示" if not ok else ""
+        flag = "  ⚠ n<30 no se muestra" if not ok else ""
         print(f"    {label:<12} n={n:<3} {mean}{flag}")
         metric_results.append((m["metric"], label, n, ok, min_n, denom))
 
 # ============================================================================
-# 3) 纵向配对：T0→T1 归属/幸福感变化（仅复测子集）
+# 3) Parellament longitudinal: canvi de pertinença/benestar T0→T1 (sólo subconjunt de remesa)
 # ============================================================================
-print("\n== 纵向配对 (T0→T1 canvi_benestar) ==")
+print("\n== Parellament longitudinal (T0→T1 canvi_benestar) ==")
 t0 = {r["respondent_id"]: r["processed"] for r in STAT_LIST
       if r["wave"] == "T0" and r["question_id"] == "canvi_benestar"
       and r["estat"] == "resposta"}
@@ -255,28 +260,28 @@ t1 = {r["respondent_id"]: r["processed"] for r in STAT_LIST
 paired = [(rid, t0[rid], v) for rid, v in t1.items() if rid in t0]
 for rid, a, b in paired:
     print(f"    {rid}: T0={a} → T1={b}  Δ={b-a:+d}")
-print(f"  (共 {len(paired)} 条纵向配对)")
+print(f"  (un total de {len(paired)} parellaments longitudinals)")
 
 
 # ============================================================================
-# 4) 声明检查器（全部为真实判断）
+# 4) Comprovador de afirmaciones (todo juicios reales)
 # ============================================================================
-print("\n== 声明检查器 (Claim checker) ==")
+print("\n== Comprovador de afirmaciones (Claim checker) ==")
 problems = []
 
-# --- (a) 每个百分比都有分母 n ---
-# 真实判断：每个 metric 都能从 schema 找到对应 denominator 定义，且该分母
-# 给出 n_min 阈值（不依赖硬编码 True）。
+# --- (a) cada percentual tiene denominador n ---
+# Juicio real: cada métrica encuentra su definición de denominador en el schema, y ese
+# denominador da el umbral n_min (sin depender de un True codificado).
 denom_ok = True
 for m in SCHEMA["metrics"]:
     name = m.get("denominator")
     if name not in DENOMS:
         denom_ok = False
-        problems.append(f"metric {m['metric']} 引用了未定义分母 {name}")
+        problems.append(f"la métrica {m['metric']} cita un denominador no definido {name}")
 check_denom = denom_ok
 
-# --- (b) 分波记录，可谈纵向 ---
-# 真实判断：wave_panel 存在 ≥2 个波次（T0/T1），每个波次带 invitats / respostes。
+# --- (b) hay registro por onda, se puede hablar de longitudinal ---
+# Juicio real: wave_panel tiene ≥2 onades (T0/T1), cada una con invitats / respostes.
 check_wave = False
 if len(WAVE_PANEL) >= 2:
     all_waves = True
@@ -286,10 +291,11 @@ if len(WAVE_PANEL) >= 2:
             break
     check_wave = all_waves
 
-# --- (c) 全体有效分母（all_valid）的 headline 指标，基础样本必须 ≥ n_min ---
-# 真实判断：对「全体有效、不分箱、单字段」的指标，其基础样本 n 必须达到 n_min，
-# 否则该框架永远无法对这类主指标下结论（这是框架层面的硬约束，不是偶然）。
-# 达不到就列入 problems，使 check_n30 成为有约束力的断言，而非「存在一个小样本」。
+# --- (c) headline con denominador all_valid: la muestra base debe ser ≥ n_min ---
+# Juicio real: para los indicadores «todos válidos, sin binning, campo único» la muestra
+# base n ha de alcanzar n_min; si no, el marc nunca puede concluir sobre este indicador principal
+# (es una dura restricción de marc, no algo casual).
+# Los que no alcanzan se añaden a problems, haciendo check_n30 una afirmación con fuerza, no «hay una muestra pequeña».
 n_ok_all_valid = True
 below_allvalid = []
 for mm in SCHEMA["metrics"]:
@@ -304,12 +310,12 @@ for mm in SCHEMA["metrics"]:
         below_allvalid.append((mm["metric"], n, min_n))
 check_n30 = n_ok_all_valid
 for x in below_allvalid:
-    problems.append(f"全体有效分母指标 {x[0]} 基础样本 n={x[1]} < n_min={x[2]}，框架无法下结论")
+    problems.append(f"indicador con denominador all_valid: muestra base n={x[1]} < n_min={x[2]}, el marc no puede concluir")
 
-# --- (d) 量表方向已处理 ---
-# 真实判断：对每条 escalar 为 ordinal/interval 且 sentit=negative 的题目，
-# 遍历 responses，确认其 processed 值已翻为正方向（processed == (M+1)-raw）。
-# 真实数据若出现负向量表未翻转，此处会捕获并列出该条。
+# --- (d) dirección de la escala ya processada ---
+# Juicio real: para cada pregunta escalar ordinal/interval con sentit=negative, recorrer
+# las respuestas y confirmar que processed ya está en dirección positiva (processed == (M+1)-raw).
+# Si en datos reales una escala negativa no se voltea, aquí se captura y lista.
 neg_violations = []
 for rid, wave, qid, raw, estat, processed in MOCK:
     if estat != "resposta":
@@ -325,32 +331,32 @@ for rid, wave, qid, raw, estat, processed in MOCK:
             neg_violations.append((rid, qid, raw, processed, expected))
 check_direction = (len(neg_violations) == 0)
 for v in neg_violations:
-    problems.append(f"方向未翻转: {v[0]} {v[1]} raw={v[2]} processed={v[3]} 应翻={v[4]}")
+    problems.append(f"dirección sin voltear: {v[0]} {v[1]} raw={v[2]} processed={v[3]} había de voltear a {v[4]}")
 
-# --- (e) 不识别任何人：无姓名 / 学号 / 邮箱 ---
-# 真实判断：所有 respondent_id 都匹配虚拟 id 正则；注册信息（GENDERS 等价物）
-# 不含 name / email / id_number 等敏感键。
+# --- (e) no se identifica a nadie: sin nombre / nº de estudiante / correo ---
+# Juicio real: todos respondent_id coinciden con el patrón de id virtual; la info de
+# registro (equivalente a GENDERS) no lleva teclses sensibles como name / email / id_number.
 SENSITIVE_KEYS = {"name", "email", "id_number", "nombre", "email2"}
 id_re = re.compile(r"^id\d+$")
 id_ok = all(id_re.match(r["respondent_id"]) for r in STAT_LIST)
-# mock 生成时只维护虚拟 id，没有注册敏感字段；这里再做一次防御性检查
+# al generar el mock se mantiene solo el id virtual; aquí un chequeo defensivo adicional
 attrs_keys = set()
 id_ok = id_ok and (not (SENSITIVE_KEYS & attrs_keys))
 check_privacy = id_ok
 
 checks = [
-    ("每个百分比都有分母 n（schema denominators）", check_denom),
-    ("分波框架存在（纵向结论待 T1 复测=明年；2026 仅框架）", check_wave),
-    ("小于 30 的分组未展示为结论（⚠ 标记完整）", check_n30),
-    ("量表方向已处理（负向量表已翻转）", check_direction),
-    ("不识别任何人：无姓名/学号/邮箱", check_privacy),
+    ("Cada percentual tiene denominador n (denominators del schema)", check_denom),
+    ("Existe el marc de onades (conclusions longitudinals pendentes de la remesa T1=any que venix; 2026 només marc)", check_wave),
+    ("Subgrups <30 no mostrados como conclusión (marcats completament con ⚠)", check_n30),
+    ("La dirección de l'escala está processada (escales negatives invertides)", check_direction),
+    ("No s'identifica ningú: sin nombre / nº de estudiante / correu", check_privacy),
 ]
 for label, ok in checks:
     print(f"  {'✅' if ok else '❌'} {label}")
 if problems:
-    print("  问题:")
+    print("  Problemes:")
     for p in problems:
         if p:
             print(f"    - {p}")
 
-print("\n完成。校验器已接入 schema.yaml，用模拟数据跑通并执行真实判断。")
+print("\nFinalitzat. El comprobador está connectado a schema.yaml, corre con dades simulades y hace juicios reals.")

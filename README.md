@@ -1,53 +1,52 @@
-# REPTE SAF UAB 2026 — 竞赛项目仓库
+# REPTE SAF UAB 2026 — repositori del projecte del repte
 
-本仓库是 **REPTE SAF UAB 2026**（SAF 40 周年，11/7–8）竞赛项目的**整体仓库**。
-本仓库收录本次竞赛的交付物与材料；不同部分（各队选题成果）集中在同一目录下。
+Aquest repositori és el **repositori complet** del projecte del repte **REPTE SAF UAB 2026** (40è aniversari del SAF, 11/7–8).
+Hi entra l'entregable i els materials del repte d'aquesta edició; les diferents parts (resultats de la tria de cada equip) es concentren en un mateix directori.
 
-> ⚠️ 真实 SAF 数据**禁止入仓**（竞赛规则）。`.gitignore` 已排除 `DADES/` 与原始表格/PDF。
+> ⚠️ Les dades reals del SAF **no hi pot entrar al repositori** (regla del repte). `.gitignore` ja exclou `DADES/` i les taules/PDF originals.
 
-## 选题：L2Q3「明年该测什么」
+## Tria: L2Q3 «Què hauríem de mesurar l'any vinent?»
 
-设计第二次问卷 / 第二次测量体系，使 SAF 能谈「retorn de veritat（真实回报）」：
-**回报限于学生自评的 benestar / hàbit / pertinença（幸福感、习惯、归属感），非钱、非成绩。**
+Es dissenya la segona enquesta / segon sistema de mesura, perquè el SAF pot parlar del «retorn de veritat»:
+el retorn queda limitat al benestar / hàbit / pertinença autoinformats de l'estudiant (benestar, hàbit, pertinença), no a diners ni a notes.
 
-## 交付物（L2Q3）
+## Entregables (L2Q3)
 
-| 文件 | 说明 |
+| Fitxer | Explicació |
 |---|---|
-| `2026-11-07-L2Q3-问卷原文.docx` | 可重复问卷原文 |
-| `2026-11-07-L2Q3-测量体系攻坚方案.docx` | 选题与攻坚方案 |
-| `SAF_L2Q3_presentacio.pptx` | 3 分钟演示稿 |
-| `2026-11-07-L2Q3-给SAF的一页纸.pdf` | 给 SAF 的一页纸（3 条讯息） |
-| `2026-11-07-L2Q3-数据模型模板.xlsx` | 数据模型模板 |
-| `saf_enquesta_analisi.ipynb` | 问卷分析 notebook |
+| `2026-11-07-L2Q3-问卷原文.docx` | Text original de l'enquesta (replicable) |
+| `2026-11-07-L2Q3-测量体系攻坚方案.docx` | Tria i pla d'atac del sistema de mesura |
+| `SAF_L2Q3_presentacio.pptx` | Presentació de 3 minuts |
+| `2026-11-07-L2Q3-数据模型模板.xlsx` | Plantilla del modelo de dades |
+| `saf_enquesta_analisi.ipynb` | Notebook d'anàlisi de l'enquesta |
 
-### 数据模型（schema + ER 图 + 可运行校验器）
+### Modelo de dades (schema + diagrama ER + validador executable)
 
-数据模型的工程交付物，与上面文档配套。**`schema.yaml` 是唯一权威的机读数据模型来源**（题目 / 量表 / 方向 / 跳题资格 / 分母 / 波次）；其余文件围绕它，互不重复定义同一模型：
+L'entregable tènic del modelo de dades, coherent amb els documents d'aquesta taula. **`schema.yaml` és l'única font autoritativa llegible per màquina del modelo de dades** (preguntes / escales / direcció / Qualificació per salt / denominadors / onades); la resta de fitxers s'orguen al voltant seu, sense redefinir cada cop el mateix modelo:
 
-| 文件 | 说明 | 与 schema.yaml 的关系 |
+| Fitxer | Explicació | Relació amb `schema.yaml` |
 |---|---|---|
-| `schema.yaml` | 题目元数据＋分母定义＋波次邀请数 | **唯一权威机读来源** |
-| `question_field_map.md` | 题号 ↔ 字段 ↔ 量表方向 ↔ 分母 ↔ 统计表 映射 | 由 schema.yaml 导出的人类可读索引 |
-| `validate.py` | 用内置模拟数据跑通：生成长表、算 Denominator/Metric、跑声明检查 | 消费 schema.yaml 的运行器 |
-| `entitats.svg` | ER 关系图（长表 `Response` + 显式分母 `Denominator`） | 由 `entitats.svg` 脚本生成（`.svg` 实为画图脚本，运行后产出图） |
-| `saf_model_er.html` | ER 图静态预览（浏览器可直接打开） | `entitats.svg` 的产物预览 |
-| `Postgres DDL 镜像` / `可运行的关系型 Schema 原型` | 早期关系型原型（`saf_model.py`，Storage/Dimension/Presentation 三层） | **参考 / 历史镜像**，非权威来源，勿当作模型定义二次修改 |
+| `schema.yaml` | Metadades de les preguntes + definició de denominadors + nº d'invitats per onada | **única font llegible per màquina** |
+| `question_field_map.md` | Mappament pregunta ↔ camp ↔ escala/direcció ↔ denominador ↔ taula d'estadístiques | Índex llegible per a humans exportat des de `schema.yaml` |
+| `validate.py` | Corre amb dades simulades integrades: construeix la tabla larga, calcula Denominator/Metric, corre les comprovacions d'afirmacions | Consumidor executable de `schema.yaml` |
+| `saf_model_er.html` | Vista prèvia estàtica del diagrama ER (s'obre directament al navegador) | Producte de vista prèvia de `entitats.svg` |
+| `saf_model.py` | Prototype de modelo relacional executable (layers Storage/Dimension/Presentation, codi pur en python) | **referència / mirror històric**, no font autoritativa; no el modifiquis com a segona definició del modelo |
 
-数据模型核心思路：**用长表替代原始 33 列宽表，每个百分比自带分母 n**，
-把 2026 问卷的缺陷（分母无法复原、跳题口径不一致）改成立论。详见 `schema.yaml`。
+Nota: el diagrama d'entitats (`entitats.svg`) el gestiona un altre membre de l'equip.
 
-## 硬约束（每个数字必须写清）
+Ideia central del modelo de dades: **es substiteix la wide table de 33 cols originals per una tabla larga, on cada percentual porta el seu denominador n**, convertint els buits de l'enquesta 2026 (denominador impossible de reconstruir, criteris de pregunta salt desuniforms) en un punt a favor. Més detalls a `schema.yaml`.
 
-- **出处、分母 n、与哪组比、单一时点**
-- 真实数据只用于本次竞赛；不上传公开仓库、不传出团队、不识别任何人（分组 n<30 不展示）
+## Restriccions dures (cada número ha de dir d'on surt)
 
-## 提交规范
+- **font, denominador n, contra quin grup es compara, moment únic**
+- Les dades reals sols serveixen per aquest repte; no es publiquen ni s'exporten fora de l'equip, no s'identifica ningú (subgrups n<30 no es mostren)
 
-- 真实 SAF 数据不入仓（见 `.gitignore`）
-- 提交信息用简短中英文说明改动
+## Normativa de l'entrega
 
-## 参考文献
+- Les dades reals del SAF no hi paten al repositori (veure `.gitignore`)
+- Els missatges de commit són curtet, en castellà/anglès, i descriuen el canvi
+
+## Referències
 
 Harvey S B, Øverland S, Hatch S L, et al. Exercise and the prevention of depression: results of the HUNT cohort study[J]. American journal of psychiatry, 2018, 175(1): 28-36.
 

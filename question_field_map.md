@@ -1,62 +1,62 @@
-# L2Q3 题号 ↔ 字段ID ↔ 量表方向 ↔ 分母 ↔ 统计表 映射表
+# L2Q3 Mappament nº de pregunta ↔ camp ID ↔ escala/direcció ↔ denominador ↔ taula d'estadístiques
 
-> 覆盖问卷全部 16 题（含新增 C6 公平/可及性题与 E1/E2 拆分子字段），共 **18 类 question**（25 行字段）。
-> 用途：任何分析脚本可按「一题一字段」对齐，列顺序为：
-> **问卷题号 / 字段ID / 量表(escalar) / 方向(sentit) / 分母(denominators) / 对应 estat / 2026列 / 备注**
+> Cobre totes les 16 preguntes de l'enquesta (inclús la nova pregunta d'accesibilidad/equitat C6 i els camps desmullats d'E1/E2), per un total de **18 categories de pregunta** (25 files de camp).
+> Ús: qualsevol script d'anàlisi pot alinear segons «una pregunta, un camp»; l'ordre de columnes és:
+> **nº de pregunta / camp ID / escala(escalar) / direcció(sentit) / denominador(denominators) / taula d'estadístiques corresponent / col de 2026 / nota**
 
-## 说明
+## Explicació
 
-- **量表 escalar**：`categorical`(类别/名义)·`binary`(0-1)·`ordinal`(有序)·`interval`(区间)·`ratio`(比率)。
-- **方向 sentit**：`positive`(越大越好)/`negative`(越大越差)；binary/categorical 填 `-`。
-- **preguntada_a**：`well_defined`(全体)/`well_defined_n_excluded`(仅某子群，剔除其他)。
-- **track_pairing**：`true` 仅 `canvi_benestar`(纵向锚点)。
-- **分母**：`all_valid`(全体有效)·`movers_n`(运动者 A3∈{1,2})·`abonat_sisi`(会员 Sí)·`nonmovers_n`(非运动者 A3=3，目标 ≥150)。
-- **n 门槛**：结论 n_min_conclusion=30；n_min_privacy=30 为隐私阈值**建议**，≠隐私保证；分组 n<30 不展示。
+- **escala escalar**: `categorical`(categoría/nominal)·`binary`(0-1)·`ordinal`(ordinal)·`interval`(interval)·`ratio`(ratio).
+- **direcció sentit**: `positive`(més gran millor)/`negative`(més gran pitjor); binary/categorical = `-`.
+- **preguntada_a**: `well_defined`(tothom)/`well_defined_n_excluded`(sols un subgrups, excloent la resta).
+- **track_pairing**: `true` sols per a `canvi_benestar`(ancora longitudinal).
+- **denominador**: `all_valid`(tothom and valid)·`movers_n`(practicans A3∈{1,2})·`abonat_sisi`(membres Sí)·`nonmovers_n`(no-practicans A3=3, target ≥150).
+- **ull de n**: n_min_conclusion=30; n_min_privacy=30 és una recomanació d'ull de privacitat, no és una garantia; subgrups n<30 no es mostren.
 
-## 映射表
+## Taulella de mappament
 
-| 问卷题号 | 字段ID | 量表(escalar) | 方向(sentit) | 分母(denominators) | 对应 estat | 2026列 | 备注 |
+| nº de pregunta | camp ID | escala(escalar) | direcció(sentit) | denominador(denominators) | taula d'estadístiques | col de 2026 | nota |
 |---|---|---|---|---|---|---|---|
-| A1 性别 | generes | categorical | - | all_valid | pertinencia_generes | col2 | 男/女/非二元/无意见；用于性别×归属跨表 |
-| A3 运动情况 | situacio | categorical | - | all_valid | situacio_grups | col4 | **分组枢纽**：{1,2}→运动者 movers_n；{3}→非运动者 nonmovers_n；preguntada_a=well_defined_n_excluded |
-| A4 是否会员 | abonat | binary | - | abonat_sisi | abonat_grups | col5 | Sí/No；分母为会员数 |
-| B1 运动频率 | frecuencia | ordinal | positive | movers_n | freq_esport | col16(缺106) | 1=1次/周…4=超5次；4天阈值判定；仅运动者 |
-| B3 是否达标 | habit_estar | ordinal | positive | movers_n | habit_arrel | — | 1=没达到,2=基本达到,3=达到；仅运动者 |
-| C1 身体健康 | salut_fisica | interval | positive | all_valid | salut_fisica | col11-15 | int 1-5；全体正向 |
-| C2 情绪 | stat_emocional | interval | positive | all_valid | stat_emocional | col16-19 | int 1-5；全体正向 |
-| C3 睡眠小时数 | son_hores | ordinal | - | all_valid | son_hores | col20-23 | ordered int 区间 0-1…>9；非单调故 sentit=- |
-| C3 睡眠质量 | son_qualitat | interval | positive | all_valid | son_qualitat | col24-27 | int 1-5；全体正向（与小时数拆分） |
-| C4 压力 | estres | ordinal | negative | all_valid | estres_freq | col28-31 | 频率向 Mai…Molt sovint；反向计分 |
-| C5 好处 | beneficis | interval | positive | movers_n | benefici_movers | col32-36 | int 1-5；仅运动者 |
-| D1 联结/归属感 | pertinenca | interval | positive | all_valid | pertinencia | col37-40 | int 1-5；全体正向 |
-| C6 公平/可及性 | accesibilidad | ordinal | positive | all_valid | accesibilidad_grups | 新增 | 认为 SAF 对你的可及性(1=很难及…5=很容易及)；全体正向；equitat 直接测量 |
-| E1 障碍(1) | obstacle_1 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 没时间/学习忙；0/1 |
-| E1 障碍(2) | obstacle_2 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 距离远/无交通；0/1 |
-| E1 障碍(3) | obstacle_3 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 费用高/无会员优惠；0/1 |
-| E1 障碍(4) | obstacle_4 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 不感兴趣/无偏好；0/1 |
-| E1 障碍(5) | obstacle_5 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 身体原因/伤病；0/1 |
-| E1 障碍(6) | obstacle_6 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 缺少伙伴；0/1 |
-| E1 障碍(7) | obstacle_7 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 缺乏更衣室/设施；0/1 |
-| E2 意向(价格优惠) | intencio_1 | interval | positive | nonmovers_n | intencio_noesport | 新增 | 4 类激励拆字段；int 1-5 |
-| E2 意向(时间灵活) | intencio_2 | interval | positive | nonmovers_n | intencio_noesport | 新增 | 时间/课程灵活性；int 1-5 |
-| E2 意向(社交社群) | intencio_3 | interval | positive | nonmovers_n | intencio_noesport | 新增 | 社交/同伴/社群；int 1-5 |
-| E2 意向(健康指导) | intencio_4 | interval | positive | nonmovers_n | intencio_noesport | 新增 | 健康收益/指导；int 1-5 |
-| E3 纵向锚点 | canvi_benestar | ordinal | positive | all_valid | canvi_benestar_panel | 新增·纵向 | 一年前比较，负→正；track_pairing=true |
+| A1 gène | generes | categorical | - | all_valid | pertinencia_generes | col2 | home/donna/no binari/sense opinió; per a creure de gène × pertinença |
+| A3 situació | situacio | categorical | - | all_valid | situacio_grups | col4 | **clau de grup**: {1,2}→practicans movers_n; {3}→no-practicans nonmovers_n; preguntada_a=well_defined_n_excluded |
+| A4 ¿membre? | abonat | binary | - | abonat_sisi | abonat_grups | col5 | Sí/No; denominador = nombre de membres |
+| B1 freqüència | frecuencia | ordinal | positive | movers_n | freq_esport | col16(falten 106) | 1=1 setmanal…4>5 setmanals; llim de 4 dies; sols practicans |
+| B3 ¿assolit? | habit_estar | ordinal | positive | movers_n | habit_arrel | — | 1=no assolit,2=gairbé assolit,3=assolit; sols practicans |
+| C1 salud física | salut_fisica | interval | positive | all_valid | salut_fisica | col11-15 | int 1-5; tothom positiu |
+| C2 ànim | stat_emocional | interval | positive | all_valid | stat_emocional | col16-19 | int 1-5; tothom positiu |
+| C3 hores de son | son_hores | ordinal | - | all_valid | son_hores | col20-23 | ordered int interval 0-1…>9; no monòton, sentit=- |
+| C3 qualitat de son | son_qualitat | interval | positive | all_valid | son_qualitat | col24-27 | int 1-5; tothom positiu (desmultiat de les hores) |
+| C4 estrès | estres | ordinal | negative | all_valid | estres_freq | col28-31 | de freqüència Mai…Molt sovint; puntuació inversa |
+| C5 beneficis | beneficis | interval | positive | movers_n | benefici_movers | col32-36 | int 1-5; sols practicans |
+| D1 vincle/pertinença | pertinenca | interval | positive | all_valid | pertinencia | col37-40 | int 1-5; tothom positiu |
+| C6 accesibilidad/equitat | accesibilidad | ordinal | positive | all_valid | accesibilidad_grups | novell | percepció d'accesibilitat del SAF per a tu (1=molt difícil…5=molt accessible); tothom positiu; mesura directa d'equitat |
+| E1 obacle(1) | obstacle_1 | binary | - | nonmovers_n | obstacles_noesport | novell | no hi ha temps / s'educa molt; 0/1 |
+| E1 obacle(2) | obstacle_2 | binary | - | nonmovers_n | obstacles_noesport | novell | lluny / no hi ha transport; 0/1 |
+| E1 obacle(3) | obstacle_3 | binary | - | nonmovers_n | obstacles_noesport | novell | car / no hi te descompte de membre; 0/1 |
+| E1 obacle(4) | obstacle_4 | binary | - | nonmovers_n | obstacles_noesport | novell | no m'interessa / no hi te preferència; 0/1 |
+| E1 obacle(5) | obstacle_5 | binary | - | nonmovers_n | obstacles_noesport | novell | raons físiques / lesions; 0/1 |
+| E1 obacle(6) | obstacle_6 | binary | - | nonmovers_n | obstacles_noesport | novell | falta companyia / ningú; 0/1 |
+| E1 obacle(7) | obstacle_7 | binary | - | nonmovers_n | obstacles_noesport | novell | falta vestidor / instal·lacions; 0/1 |
+| E2intenació(preci) | intencio_1 | interval | positive | nonmovers_n | intencio_noesport | novell | 4 tipus d'incentius en camps; int 1-5 |
+| E2intenació(flexibilitat de temps) | intencio_2 | interval | positive | nonmovers_n | intencio_noesport | novell | temps / flexibilitat de classe; int 1-5 |
+| E2intenació(community social) | intencio_3 | interval | positive | nonmovers_n | intencio_noesport | novell | social / companyia / comunitat; int 1-5 |
+| E2intenació(orientació de salut) | intencio_4 | interval | positive | nonmovers_n | intencio_noesport | novell | beneficis de salut / orientació; int 1-5 |
+| E3 ancora longitudinal | canvi_benestar | ordinal | positive | all_valid | canvi_benestar_panel | novell·longitudinal | comparació fa un any, negatiu→positiu; track_pairing=true |
 
-## 分母字典(denominators)
+## Diccionari de denominadors(denominators)
 
-| name | 口径 | n_min_conclusion | n_min_privacy | 目标_n | 用途 |
+| name | criteri | n_min_conclusion | n_min_privacy | target_n | ús |
 |---|---|---|---|---|---|
-| all_valid | 全体有效回收 | 30 | 30 | — | A1/A3/A4/C1/C2/C3/C4/C6/D1/E3 |
-| movers_n | 运动者 A3∈{1,2} | 30 | 30 | — | B1/B3/C5（缺106） |
-| abonat_sisi | 会员 A4=Sí | 30 | 30 | — | A4 会员占比 |
-| nonmovers_n | 非运动者 A3=3 | 30 | 30 | ≥150 | E1 障碍 / E2 意向 |
+| all_valid | tothom recollit and de valid | 30 | 30 | — | A1/A3/A4/C1/C2/C3/C4/C6/D1/E3 |
+| movers_n | practicans A3∈{1,2} | 30 | 30 | — | B1/B3/C5 (falten 106) |
+| abonat_sisi | membres A4=Sí | 30 | 30 | — | % de membres de A4 |
+| nonmovers_n | no-practicans A3=3 | 30 | 30 | ≥150 | obacles E1 /intenació E2 |
 
-> 注：`n_min_privacy=30` 仅为**隐私阈值建议**，不等于隐私保证；真实数据不入仓，分组 n<30 不展示。
+> Nota: `n_min_privacy=30` sols és una recomanació d'ull de privacitat, no és una garantia; les dades reals del SAF no hi entren al repositori, subgrups n<30 no es mostren.
 
-## 统计表(metrics)一览
+## Vista general de les taules d'estadístiques(metrics)
 
-| metric | by（字段） | denominator | table | 方向 |
+| metric | by(camp) | denominador | taula | direcció |
 |---|---|---|---|---|
 | situacio_grups | situacio | all_valid | situacio_grups | — |
 | abonat_grups | abonat | abonat_sisi | abonat_grups | — |
@@ -70,7 +70,7 @@
 | benefici_movers | beneficis | movers_n | benefici_movers | + |
 | pertinencia_generes | pertinenca × generes | all_valid | pertinencia_generes | + |
 | pertinencia | pertinenca | all_valid | pertinencia | + |
-| accesibilidad_grups | accesibilidad | all_valid | accesibilidad_grups | +（公平/可及性） |
+| accesibilidad_grups | accesibilidad | all_valid | accesibilidad_grups | + (accesibilidad/equitat) |
 | obstacles_noesport | obstacle_1..7 | nonmovers_n | obstacles_noesport | — |
 | intencio_noesport | intencio_1..4 | nonmovers_n | intencio_noesport | + |
-| canvi_benestar_panel | canvi_benestar | all_valid | canvi_benestar_panel | +（纵向配对） |
+| canvi_benestar_panel | canvi_benestar | all_valid | canvi_benestar_panel | + (parellament longitudinal) |
