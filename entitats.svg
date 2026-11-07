@@ -1,84 +1,159 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" font-family="ui-monospace, Consolas, monospace">
-  <rect width="960" height="560" fill="#fafafa"/>
-  <text x="24" y="30" font-size="18" font-weight="700" fill="#16181d">L2Q3 数据模型 · ER 关系图（长表 + 显式分母）</text>
+# -*- coding: utf-8 -*-
+"""
+ER diagram for the SAF longitudinal-survey data model.
+对应 saf_model.py / saf_model.sql（question · item_answer · survey · respondent）。
 
-  <!-- edges -->
-  <g stroke="#71717a" stroke-width="1.3" fill="none">
-    <line x1="210" y1="150" x2="470" y2="150"/>  <!-- Respondent→Wave (wave_id) -->
-    <line x1="210" y1="150" x2="270" y2="430"/>  <!-- Respondent→Response -->
-    <line x1="120" y1="150" x2="210" y2="430"/>  <!-- PanelCode→Respondent -->
-    <line x1="600" y1="110" x2="690" y2="430"/>  <!-- Question→Response -->
-    <line x1="840" y1="460" x2="690" y2="450"/>  <!-- Metric→Question -->
-    <line x1="840" y1="460" x2="896" y2="200"/>  <!-- Metric→Denominator -->
-    <line x1="330" y1="460" x2="600" y2="460"/>  <!-- Response→Question -->
-  </g>
+Professional crow's-foot ERD — looks like a hand-crafted data-modeling deliverable,
+not a template:
+  - rounded table cards with a subtle offset shadow
+  - PK / FK / attribute grouping (PK bold+underline red, FK italic blue)
+  - real cardinality notation (mandatory bar "1" vs crow's foot "N")
+  - relationship captions, muted slate palette, clean sans-serif
 
-  <!-- entities -->
-  <g font-size="13">
-    <!-- Wave -->
-    <g>
-      <rect x="470" y="110" width="180" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
-      <text x="482" y="132" font-weight="700">Wave</text>
-      <line x1="470" y1="140" x2="650" y2="140" stroke="#e4e4e7"/>
-      <text x="482" y="158">wave_id (PK)</text>
-      <text x="482" y="178">data_inici, canal</text>
-      <text x="482" y="198">invitat, respostes  ← 回应率</text>
-    </g>
-    <!-- Respondent -->
-    <g>
-      <rect x="40" y="110" width="180" height="110" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
-      <text x="52" y="132" font-weight="700">Respondent</text>
-      <line x1="40" y1="140" x2="220" y2="140" stroke="#e4e4e7"/>
-      <text x="52" y="158">respondent_id (PK)</text>
-      <text x="52" y="178">wave_id (FK)  ← 分波</text>
-      <text x="52" y="198">gènere, estudis  ← 对比组</text>
-    </g>
-    <!-- PanelCode -->
-    <g>
-      <rect x="40" y="390" width="180" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
-      <text x="52" y="412" font-weight="700">PanelCode</text>
-      <line x1="40" y1="420" x2="220" y2="420" stroke="#e4e4e7"/>
-      <text x="52" y="438">codi (PK)  ← 自生成</text>
-      <text x="52" y="458">respondent_id (FK)</text>
-      <text x="52" y="476">consentiment</text>
-    </g>
-    <!-- Question -->
-    <g>
-      <rect x="560" y="90" width="180" height="120" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
-      <text x="572" y="112" font-weight="700">Question</text>
-      <line x1="560" y1="120" x2="740" y2="120" stroke="#e4e4e7"/>
-      <text x="572" y="138">question_id (PK)</text>
-      <text x="572" y="158">escala, sentit  ← 方向翻转</text>
-      <text x="572" y="178">preguntada_a  ← 跳题资格</text>
-      <text x="572" y="198">track_pairing</text>
-    </g>
-    <!-- Response -->
-    <g>
-      <rect x="270" y="410" width="180" height="130" fill="#e4ecf8" stroke="#2563eb" stroke-width="2"/>
-      <text x="282" y="432" font-weight="700" fill="#2563eb">Response</text>
-      <line x1="270" y1="440" x2="450" y2="440" stroke="#dbeafe"/>
-      <text x="282" y="458">response_id (PK)</text>
-      <text x="282" y="478">respondent_id (FK)</text>
-      <text x="282" y="498">question_id (FK)</text>
-      <text x="282" y="518">valor, estat  ← 长表</text>
-    </g>
-    <!-- Denominator -->
-    <g>
-      <rect x="840" y="160" width="110" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
-      <text x="852" y="182" font-weight="700">Denominator</text>
-      <line x1="840" y1="190" x2="950" y2="190" stroke="#e4e4e7"/>
-      <text x="852" y="208">question_id (FK)</text>
-      <text x="852" y="228">grup, n  ← 分母</text>
-    </g>
-    <!-- Metric -->
-    <g>
-      <rect x="720" y="420" width="160" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
-      <text x="732" y="442" font-weight="700">Metric</text>
-      <line x1="720" y1="450" x2="880" y2="450" stroke="#e4e4e7"/>
-      <text x="732" y="468">question_id (FK)</text>
-      <text x="732" y="488">grup, valor  ← 指标值</text>
-    </g>
-  </g>
+Entity chain: question -- item_answer -- survey -- respondent
+Laid out as a zigzag (S) so relationship edges do NOT cross.
 
-  <text x="24" y="552" font-size="12" fill="#71717a">关键：每个百分比自带 n（Denominator）→ 分母可复原；Response.estat 区分 未问/拒答/不适用/已答 → 跳题口径可复原。</text>
-</svg>
+Run:  python saf_model_er.py   ->   saf_model_er.png
+Dependencies: matplotlib (no third-party graphviz needed).
+English / Catalan labels only (no CJK fonts on this machine).
+"""
+import math
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch
+
+fig, ax = plt.subplots(figsize=(15, 10.2))
+ax.set_xlim(0, 13)
+ax.set_ylim(0, 9.4)
+ax.set_aspect("equal")
+ax.axis("off")
+fig.patch.set_facecolor("#fbfcfd")
+
+# ── palette ────────────────────────────────────────────────────────────────
+HEADER  = "#2f3d4e"     # slate title bar
+INK     = "#5f6670"     # edge / cardinality marks
+PK      = "#a8322b"     # primary key
+FK      = "#2b6fa0"     # foreign key
+NORMAL  = "#6b7078"     # plain attribute
+EDGE    = "#c9ced4"     # card border
+SHADOW  = "#e6e9ec"     # card shadow
+ROW     = 0.24          # vertical spacing between attribute rows
+
+
+def draw_entity(cx, cy, w, h, title, pk, fk, attrs):
+    """Draw one rounded table card with a PK / FK / attribute block."""
+    x0, y0 = cx - w / 2, cy - h / 2
+
+    # offset shadow
+    ax.add_patch(FancyBboxPatch((x0 + 0.07, y0 - 0.07), w, h,
+              boxstyle="round,pad=0.02,rounding_size=0.11",
+              fill=True, facecolor=SHADOW, edgecolor="none", zorder=1))
+    # card body
+    ax.add_patch(FancyBboxPatch((x0, y0), w, h,
+              boxstyle="round,pad=0.02,rounding_size=0.11",
+              fill=True, facecolor="#ffffff", edgecolor=EDGE, linewidth=1.0, zorder=2))
+    # title bar
+    barh = 0.46
+    ax.add_patch(FancyBboxPatch((x0, y0 + h - barh), w, barh,
+              boxstyle="round,pad=0.02,rounding_size=0.11",
+              fill=True, facecolor=HEADER, edgecolor="none", zorder=3))
+    ax.text(cx, y0 + h - barh / 2, title, ha="center", va="center",
+            color="white", fontsize=11.6, fontweight="bold", zorder=4)
+
+    # attributes: PK (bold+underline) -> FK (italic) -> normal
+    y = y0 + h - barh - ROW
+    for a in pk:
+        t = ax.text(cx, y, f"{a}  (PK)", ha="center", va="center",
+                    color=PK, fontsize=8.0, fontweight="bold", zorder=5)
+        t.underline = True
+        y -= ROW
+    for a in fk:
+        ax.text(cx, y, f"{a}  (FK)", ha="center", va="center",
+                color=FK, fontsize=8.0, style="italic", zorder=5)
+        y -= ROW
+    for a in attrs:
+        ax.text(cx, y, a, ha="center", va="center", color=NORMAL, fontsize=8.0, zorder=5)
+        y -= ROW
+
+
+# ── cardinality marks: mandatory bar (1) vs crow's foot (N) ─────────────────
+def mandatory_bar(x, y, ux, uy):
+    """A short perpendicular bar at a '1' endpoint. (ux,uy) points toward the other entity."""
+    ang = math.atan2(uy, ux) + math.pi / 2
+    L = 0.16
+    ax.plot([x - L * math.cos(ang), x + L * math.cos(ang)],
+            [y - L * math.sin(ang), y + L * math.sin(ang)], color=INK, lw=2.5, zorder=6)
+
+
+def crrows_foot(x, y, ux, uy):
+    """Three-prong crow's foot at an 'N' endpoint; central prong points toward the other entity."""
+    ang = math.atan2(uy, ux)
+    L = 0.23
+    for off in (-math.radians(30), 0, math.radians(30)):
+        a = ang + off
+        ax.plot([x, x + L * math.cos(a)], [y, y + L * math.sin(a)],
+                color=INK, lw=2.4, zorder=6)
+
+
+def cardinality(x1, y1, u1, s1, x2, y2, u2, s2, label=(0.0, 0.0)):
+    """Draw one relationship edge. s1/s2 in {'1','N'}; u = unit dir from endpoint to the other.
+    label = (dx, dy) offset placing the '1 — N' text clear of the markers."""
+    ax.plot([x1, x2], [y1, y2], color=INK, lw=1.5, zorder=2)
+    if s1 == "1":
+        mandatory_bar(x1, y1, u1[0], u1[1])
+    else:
+        crrows_foot(x1, y1, u1[0], u1[1])
+    if s2 == "1":
+        mandatory_bar(x2, y2, u2[0], u2[1])
+    else:
+        crrows_foot(x2, y2, u2[0], u2[1])
+    mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+    ax.text(mx + label[0], my + label[1], "1  —  N", ha="center", va="center",
+            fontsize=9.0, fontweight="bold", color=INK, zorder=7)
+
+
+# ── entities (rounded cards) ───────────────────────────────────────────────
+draw_entity(2.7, 6.1, 3.4, 1.9, "respondent",
+            ["respondent_id"], [], ["gener", "estudi", "situacion", "abonat"])
+draw_entity(6.7, 6.1, 3.4, 1.9, "survey",
+            ["survey_id"], ["respondent_id"], ["onada", "status", "recorded_at"])
+draw_entity(10.6, 6.1, 3.6, 2.4, "item_answer",
+            [], ["survey_id", "question_key"], ["value", "status"])
+draw_entity(10.6, 2.7, 3.6, 3.3, "question",
+            ["key"], [], ["number", "block", "pillar", "scale", "label",
+                          "text", "reverse", "target_pop", "denominator_rule"])
+
+
+# ── relationship edges (FK direction + cardinality) ──────────────────────────
+# respondent 1 -- N survey          (survey.respondent_id -> respondent.respondent_id)
+# survey   1 -- N item_answer        (item_answer.survey_id       -> survey.survey_id)
+# question 1 -- N item_answer        (item_answer.question_key    -> question.key)
+cardinality(4.4, 6.1,  (1, 0), "1", 5.0, 6.1,  (-1, 0), "N", (0.0,  0.34))
+cardinality(8.4, 6.1,  (1, 0), "1", 8.8, 6.1,  (-1, 0), "N", (0.0,  0.34))
+cardinality(10.6, 4.9,(0,-1), "N", 10.6, 4.3,  (0, 1),  "1", (0.55, 0.0))
+
+
+# ── relationship captions ────────────────────────────────────────────────────
+ax.text(4.7, 4.5, "one respondent registers many survey waves",
+        ha="center", va="center", fontsize=8.0, color="#9aa1aa")
+ax.text(8.6, 4.5, "one survey collects many item answers",
+        ha="center", va="center", fontsize=8.0, color="#9aa1aa")
+ax.text(10.6, 0.6, "one question is answered across many waves",
+        ha="center", va="center", fontsize=8.0, color="#9aa1aa")
+
+
+# ── header ───────────────────────────────────────────────────────────────────
+ax.text(0.55, 9.05, "ER Diagram", ha="left", va="center",
+        fontsize=16, fontweight="bold", color="#26303c")
+ax.plot([0.55, 5.6], [8.78, 8.78], color=HEADER, lw=1.4, zorder=2)
+ax.text(0.57, 8.56, "Línia 2 / Direction 3  ·  Servei d'Activitat Física (UAB)",
+        ha="left", va="center", fontsize=9.6, color="#7a828c")
+ax.text(0.57, 8.34, "Longitudinal data model — anonymous, per wave, one point in time",
+        ha="left", va="center", fontsize=8.6, color="#aab1b8")
+
+
+fig.tight_layout()
+fig.savefig("/Users/aquiles/Downloads/DADES/saf_model_er.png", dpi=250,
+            facecolor=fig.get_facecolor())
+print("wrote saf_model_er.png")
