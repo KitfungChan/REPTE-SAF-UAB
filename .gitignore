@@ -1,0 +1,10 @@
+﻿# Dades reals del SAF - NO pujar al repositori (condicions del repte)
+DADES/
+saf-espais-2026-equips.xlsx
+saf-enquesta-2026-equips.xlsx
+Preguntes i resultats FORMS.pdf
+
+# Fitxers temporals d'Office / SO
+~$*
+.DS_Store
+Thumbs.db
