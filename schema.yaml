@@ -1,6 +1,6 @@
 # ============================================================================
 # L2Q3 数据模型 schema（第二次测量体系 — 机读完整版）
-# 覆盖问卷全部 15 题，含 E1/E2 拆分子字段，共 17 类 question。
+# 覆盖问卷全部 16 题（含新增 C6 公平/可及性题），含 E1/E2 拆分子字段，共 18 类 question。
 #
 # 每个 question 对象包含且仅含以下键：
 #   question_id   字段 ID（如 generes, situacio, obstacle_1, intencio_1, ...）
@@ -25,6 +25,9 @@ schema:
 
 # —— 波次标识（顶层 wave）与纵向面板（T0 baseline, T1 复测锚点）——
 wave: "L2Q3-2026"
+# 注：本 schema 为 2027 第二次测量体系的【设计框架】。
+# T0(2026-09)/T1(2026-11) 真实数据尚未采集；本交付期(2026)仅提供框架，
+# 不产出真实纵向结论（纵向结论需明年 T0→T1 两次独立施测）。
 wave_panel:
   - wave_id: T0
     role: "新成员入组 / 基线"
@@ -66,6 +69,7 @@ question:
   - estres
   - beneficis
   - pertinenca
+  - accesibilidad
   - obstacle_1
   - obstacle_2
   - obstacle_3
@@ -265,6 +269,22 @@ questions:
     estat: "pertinencia"
     description: "D1 联结/归属感，全体 int 1-5，正向（col27-30）。"
 
+  # C6 公平/可及性感知（全体，正向）—— P1：补充 equitat 的直接测量题
+  - question_id: accesibilidad
+    escalar: ordinal
+    sentit: positive
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Muy difícil", value: 1}   # 很难及（不可及）
+      - {label: "Difícil", value: 2}       # 较难及
+      - {label: "Neutral", value: 3}       # 一般
+      - {label: "Fácil", value: 4}         # 较易及
+      - {label: "Muy fácil", value: 5}     # 很容易及（公平可及）
+    denominators: all_valid
+    estat: "accesibilidad_grups"
+    description: "C6 公平/可及性感知（equitat 的直接测量）：认为 SAF 服务对你的可及性如何，1=很难及…5=很容易及；全体，正向。"
+
   # E1 障碍（多选拆 7 个独立 0/1 字段，仅非运动者）
   - question_id: obstacle_1
     escalar: binary
@@ -416,7 +436,7 @@ questions:
       - {label: "Mol millor", value: 5}  # 现在更好（正向）
     denominators: all_valid
     estat: "canvi_benestar_panel"
-    description: "E3 纵向锚点，全体 enum 1-5；与一年前比较，负→正（越大越改善）；track_pairing=true。"
+    description: "E3 纵向锚点，全体 enum 1-5；与一年前比较，负→正（越大越改善）；track_pairing=true。纵向配对需 T0→T1 两次独立施测——本 schema 为 2027 第二次测量体系的【纵向框架】；T0/T1 真实数据尚未采集，本交付期(2026)仅提供框架，不产出真实纵向结论。"
 
 # —— 分母定义（Denominator）——
 denominators:
@@ -510,6 +530,11 @@ metrics:
     by: pertinenca
     denominator: all_valid
     table: pertinencia
+    min_n: 30
+  - metric: accesibilidad_grups
+    by: accesibilidad
+    denominator: all_valid
+    table: accesibilidad_grups
     min_n: 30
   - metric: obstacles_noesport
     by: [obstacle_1, obstacle_2, obstacle_3, obstacle_4, obstacle_5, obstacle_6, obstacle_7]

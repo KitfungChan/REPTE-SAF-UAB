@@ -115,6 +115,8 @@ def build_mock():
         # D1 归属感 / E3 纵向锚点（全体）
         add(rid, "T0", "pertinenca", (i % 5) + 1)
         add(rid, "T0", "canvi_benestar", (i % 5) + 1)
+        # C6 公平/可及性感知（全体，正向）—— P1 补充
+        add(rid, "T0", "accesibilidad", ((i * 2) % 5) + 1)
 
     # T1 复测子集（自愿，id1..id8）：仅复测 E3 纵向锚点
     for i in range(1, 9):
@@ -289,7 +291,7 @@ check_privacy = id_ok
 
 checks = [
     ("每个百分比都有分母 n（schema denominators）", check_denom),
-    ("分波记录，可谈纵向（wave_panel ≥ T0/T1）", check_wave),
+    ("分波框架存在（纵向结论待 T1 复测=明年；2026 仅框架）", check_wave),
     ("小于 30 的分组未展示为结论（⚠ 标记完整）", check_n30),
     ("量表方向已处理（负向量表已翻转）", check_direction),
     ("不识别任何人：无姓名/学号/邮箱", check_privacy),

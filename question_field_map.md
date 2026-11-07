@@ -1,6 +1,6 @@
 # L2Q3 题号 ↔ 字段ID ↔ 量表方向 ↔ 分母 ↔ 统计表 映射表
 
-> 覆盖问卷全部 15 题（含 E1/E2 拆分子字段），共 **17 类 question**（24 行字段）。
+> 覆盖问卷全部 16 题（含新增 C6 公平/可及性题与 E1/E2 拆分子字段），共 **18 类 question**（25 行字段）。
 > 用途：任何分析脚本可按「一题一字段」对齐，列顺序为：
 > **问卷题号 / 字段ID / 量表(escalar) / 方向(sentit) / 分母(denominators) / 对应 estat / 2026列 / 备注**
 
@@ -29,6 +29,7 @@
 | C4 压力 | estres | ordinal | negative | all_valid | estres_freq | col28-31 | 频率向 Mai…Molt sovint；反向计分 |
 | C5 好处 | beneficis | interval | positive | movers_n | benefici_movers | col32-36 | int 1-5；仅运动者 |
 | D1 联结/归属感 | pertinenca | interval | positive | all_valid | pertinencia | col37-40 | int 1-5；全体正向 |
+| C6 公平/可及性 | accesibilidad | ordinal | positive | all_valid | accesibilidad_grups | 新增 | 认为 SAF 对你的可及性(1=很难及…5=很容易及)；全体正向；equitat 直接测量 |
 | E1 障碍(1) | obstacle_1 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 没时间/学习忙；0/1 |
 | E1 障碍(2) | obstacle_2 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 距离远/无交通；0/1 |
 | E1 障碍(3) | obstacle_3 | binary | - | nonmovers_n | obstacles_noesport | 新增 | 费用高/无会员优惠；0/1 |
@@ -46,7 +47,7 @@
 
 | name | 口径 | n_min_conclusion | n_min_privacy | 目标_n | 用途 |
 |---|---|---|---|---|---|
-| all_valid | 全体有效回收 | 30 | 30 | — | A1/A3/A4/C1/C2/C3/C4/D1/E3 |
+| all_valid | 全体有效回收 | 30 | 30 | — | A1/A3/A4/C1/C2/C3/C4/C6/D1/E3 |
 | movers_n | 运动者 A3∈{1,2} | 30 | 30 | — | B1/B3/C5（缺106） |
 | abonat_sisi | 会员 A4=Sí | 30 | 30 | — | A4 会员占比 |
 | nonmovers_n | 非运动者 A3=3 | 30 | 30 | ≥150 | E1 障碍 / E2 意向 |
@@ -69,6 +70,7 @@
 | benefici_movers | beneficis | movers_n | benefici_movers | + |
 | pertinencia_generes | pertinenca × generes | all_valid | pertinencia_generes | + |
 | pertinencia | pertinenca | all_valid | pertinencia | + |
+| accesibilidad_grups | accesibilidad | all_valid | accesibilidad_grups | +（公平/可及性） |
 | obstacles_noesport | obstacle_1..7 | nonmovers_n | obstacles_noesport | — |
 | intencio_noesport | intencio_1..4 | nonmovers_n | intencio_noesport | + |
 | canvi_benestar_panel | canvi_benestar | all_valid | canvi_benestar_panel | +（纵向配对） |
