@@ -1,0 +1,66 @@
+# L2Q3 数据模型 schema（第二次测量体系）
+# 每个问题三要素：量表方向、资格(preguntada_a)、是否参与配对追踪
+# estat 取值枚举：resposta / no_resposta / no_aplica / no_questionada
+
+questions:
+  - id: q_retorn_pertin
+    text: "你觉得参加 SAF 让你更属于这所大学吗？"
+    escala: "1-5"        # 1=完全不同意 … 5=完全同意
+    sentit: "+"          # 值越大越好
+    preguntada_a: "all_waves"      # 全组都问
+    track_pairing: true
+
+  - id: q_freq_esport
+    text: "过去一周，你进行中等及以上强度运动的天数？"
+    escala: "0-5"
+    sentit: "+"
+    preguntada_a: "all_waves"
+    track_pairing: true
+
+  - id: q_salut_percep
+    text: "总体而言，你认为自己的身体健康状况如何？"
+    escala: "1-5"
+    sentit: "+"
+    preguntada_a: "all_waves"
+    track_pairing: true
+
+  - id: q_habit_esport
+    text: "你平时养成规律运动的习惯困难吗？"
+    escala: "1-5"
+    sentit: "-"          # 值越大越困难 = 越差
+    preguntada_a: "no_sport_lastweek"   # 仅过去一周 0 天者分支回答
+    track_pairing: false
+
+  - id: q_ostatges
+    text: "你对 SAF 的整体感受？"
+    escala: "1-5"
+    sentit: "+"
+    preguntada_a: "all_waves"
+    track_pairing: false
+
+# 分母定义（Denominator）：每个指标自带 n 与对比组
+denominators:
+  - metric: freq_salut_essent
+    by: q_freq_esport
+    groups: ["0天","1天","2-3天","4-5天"]
+    compare_against: "all_waves"
+    min_n: 30            # 小于 30 不展示（隐私阈值）
+
+  - metric: pertinencia_generes
+    by: q_retorn_pertin
+    groups: ["gender:m","gender:f","other"]
+    compare_against: "all_waves"
+    min_n: 30
+
+# 波次：邀请数/回应率 = invitats / respostes
+waves:
+  - wave_id: T0
+    data_inici: "2026-09-15"
+    canal: "web"
+    invitats: 400
+    respostes: 280
+  - wave_id: T1
+    data_inici: "2026-11-20"
+    canal: "web"
+    invitats: 280
+    respostes: 205

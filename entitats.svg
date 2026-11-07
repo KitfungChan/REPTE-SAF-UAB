@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" font-family="ui-monospace, Consolas, monospace">
+  <rect width="960" height="560" fill="#fafafa"/>
+  <text x="24" y="30" font-size="18" font-weight="700" fill="#16181d">L2Q3 数据模型 · ER 关系图（长表 + 显式分母）</text>
+
+  <!-- edges -->
+  <g stroke="#71717a" stroke-width="1.3" fill="none">
+    <line x1="210" y1="150" x2="470" y2="150"/>  <!-- Respondent→Wave (wave_id) -->
+    <line x1="210" y1="150" x2="270" y2="430"/>  <!-- Respondent→Response -->
+    <line x1="120" y1="150" x2="210" y2="430"/>  <!-- PanelCode→Respondent -->
+    <line x1="600" y1="110" x2="690" y2="430"/>  <!-- Question→Response -->
+    <line x1="840" y1="460" x2="690" y2="450"/>  <!-- Metric→Question -->
+    <line x1="840" y1="460" x2="896" y2="200"/>  <!-- Metric→Denominator -->
+    <line x1="330" y1="460" x2="600" y2="460"/>  <!-- Response→Question -->
+  </g>
+
+  <!-- entities -->
+  <g font-size="13">
+    <!-- Wave -->
+    <g>
+      <rect x="470" y="110" width="180" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
+      <text x="482" y="132" font-weight="700">Wave</text>
+      <line x1="470" y1="140" x2="650" y2="140" stroke="#e4e4e7"/>
+      <text x="482" y="158">wave_id (PK)</text>
+      <text x="482" y="178">data_inici, canal</text>
+      <text x="482" y="198">invitat, respostes  ← 回应率</text>
+    </g>
+    <!-- Respondent -->
+    <g>
+      <rect x="40" y="110" width="180" height="110" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
+      <text x="52" y="132" font-weight="700">Respondent</text>
+      <line x1="40" y1="140" x2="220" y2="140" stroke="#e4e4e7"/>
+      <text x="52" y="158">respondent_id (PK)</text>
+      <text x="52" y="178">wave_id (FK)  ← 分波</text>
+      <text x="52" y="198">gènere, estudis  ← 对比组</text>
+    </g>
+    <!-- PanelCode -->
+    <g>
+      <rect x="40" y="390" width="180" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
+      <text x="52" y="412" font-weight="700">PanelCode</text>
+      <line x1="40" y1="420" x2="220" y2="420" stroke="#e4e4e7"/>
+      <text x="52" y="438">codi (PK)  ← 自生成</text>
+      <text x="52" y="458">respondent_id (FK)</text>
+      <text x="52" y="476">consentiment</text>
+    </g>
+    <!-- Question -->
+    <g>
+      <rect x="560" y="90" width="180" height="120" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
+      <text x="572" y="112" font-weight="700">Question</text>
+      <line x1="560" y1="120" x2="740" y2="120" stroke="#e4e4e7"/>
+      <text x="572" y="138">question_id (PK)</text>
+      <text x="572" y="158">escala, sentit  ← 方向翻转</text>
+      <text x="572" y="178">preguntada_a  ← 跳题资格</text>
+      <text x="572" y="198">track_pairing</text>
+    </g>
+    <!-- Response -->
+    <g>
+      <rect x="270" y="410" width="180" height="130" fill="#e4ecf8" stroke="#2563eb" stroke-width="2"/>
+      <text x="282" y="432" font-weight="700" fill="#2563eb">Response</text>
+      <line x1="270" y1="440" x2="450" y2="440" stroke="#dbeafe"/>
+      <text x="282" y="458">response_id (PK)</text>
+      <text x="282" y="478">respondent_id (FK)</text>
+      <text x="282" y="498">question_id (FK)</text>
+      <text x="282" y="518">valor, estat  ← 长表</text>
+    </g>
+    <!-- Denominator -->
+    <g>
+      <rect x="840" y="160" width="110" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
+      <text x="852" y="182" font-weight="700">Denominator</text>
+      <line x1="840" y1="190" x2="950" y2="190" stroke="#e4e4e7"/>
+      <text x="852" y="208">question_id (FK)</text>
+      <text x="852" y="228">grup, n  ← 分母</text>
+    </g>
+    <!-- Metric -->
+    <g>
+      <rect x="720" y="420" width="160" height="100" fill="#fff" stroke="#18181b" stroke-width="1.5"/>
+      <text x="732" y="442" font-weight="700">Metric</text>
+      <line x1="720" y1="450" x2="880" y2="450" stroke="#e4e4e7"/>
+      <text x="732" y="468">question_id (FK)</text>
+      <text x="732" y="488">grup, valor  ← 指标值</text>
+    </g>
+  </g>
+
+  <text x="24" y="552" font-size="12" fill="#71717a">关键：每个百分比自带 n（Denominator）→ 分母可复原；Response.estat 区分 未问/拒答/不适用/已答 → 跳题口径可复原。</text>
+</svg>
