@@ -47,8 +47,12 @@
 
 ## 参考文献
 
-[1]Harvey S B, Øverland S, Hatch S L, et al. Exercise and the prevention of depression: results of the HUNT cohort study[J]. American journal of psychiatry, 2018, 175(1): 28-36.
-[2]Cornelissen V A, Smart N A. Exercise training for blood pressure: a systematic review and meta‐analysis[J]. Journal of the American heart association, 2013, 2(1): e004473.
-[3]Rhodes R E, Smith N E I. Personality correlates of physical activity: a review and meta-analysis[J]. British journal of sports medicine, 2006, 40(12): 958-965.
-[4]Sutin A R, Stephan Y, Luchetti M, et al. The five-factor model of personality and physical inactivity: A meta-analysis of 16 samples[J]. Journal of research in personality, 2016, 63: 22-28.
-[5]Caille P, Stephan Y, Sutin A R, et al. Personality and change in physical activity across 3–10 years[J]. Psychology & health, 2024, 39(5): 670-690.
+Harvey S B, Øverland S, Hatch S L, et al. Exercise and the prevention of depression: results of the HUNT cohort study[J]. American journal of psychiatry, 2018, 175(1): 28-36.
+
+Cornelissen V A, Smart N A. Exercise training for blood pressure: a systematic review and meta‐analysis[J]. Journal of the American heart association, 2013, 2(1): e004473.
+
+Rhodes R E, Smith N E I. Personality correlates of physical activity: a review and meta-analysis[J]. British journal of sports medicine, 2006, 40(12): 958-965.
+
+Sutin A R, Stephan Y, Luchetti M, et al. The five-factor model of personality and physical inactivity: A meta-analysis of 16 samples[J]. Journal of research in personality, 2016, 63: 22-28.
+
+Caille P, Stephan Y, Sutin A R, et al. Personality and change in physical activity across 3–10 years[J]. Psychology & health, 2024, 39(5): 670-690.
