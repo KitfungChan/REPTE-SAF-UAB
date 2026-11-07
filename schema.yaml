@@ -1,66 +1,530 @@
-# L2Q3 数据模型 schema（第二次测量体系）
-# 每个问题三要素：量表方向、资格(preguntada_a)、是否参与配对追踪
-# estat 取值枚举：resposta / no_resposta / no_aplica / no_questionada
+# ============================================================================
+# L2Q3 数据模型 schema（第二次测量体系 — 机读完整版）
+# 覆盖问卷全部 15 题，含 E1/E2 拆分子字段，共 17 类 question。
+#
+# 每个 question 对象包含且仅含以下键：
+#   question_id   字段 ID（如 generes, situacio, obstacle_1, intencio_1, ...）
+#   escalar        ordinal | binary | categorical | interval | ratio
+#   sentit         positive | negative（ordinal/interval 有意义；binary/categorical 填 null）
+#   pregunta_a     well_defined | well_defined_n_excluded
+#   track_pairing  true | false（仅 canvi_benestar / 纵向相关为 true）
+#   options        [{label: <加泰原文>, value: <整数>}, ...]，value 与 escalar 一致
+#   denominators   分母名称字符串，引用顶层 denominators[] 的 name
+#   estat          对应统计表名字（引用顶层 metrics[] 的 metric / table）
+#   description    中文一句话说明
+#
+# estat 取值：对应“统计表”名字（如 freq_esport、obstacles_noesport），
+#             与 validate.py 中按 estat 标记单条答案质量（resposta/no_resposta…）的概念正交。
+# ============================================================================
 
-questions:
-  - id: q_retorn_pertin
-    text: "你觉得参加 SAF 让你更属于这所大学吗？"
-    escala: "1-5"        # 1=完全不同意 … 5=完全同意
-    sentit: "+"          # 值越大越好
-    preguntada_a: "all_waves"      # 全组都问
-    track_pairing: true
+schema:
+  version: "2.0"
+  source: "攻坚方案 §5.1 + 问卷原文（15 题）"
+  language: "ca"          # 问卷原文语言（加泰罗尼亚语）
+  privacy_rule: "分组 n<30 不展示；分母 n_min_privacy 为隐私阈值建议，不等于隐私保证"
 
-  - id: q_freq_esport
-    text: "过去一周，你进行中等及以上强度运动的天数？"
-    escala: "0-5"
-    sentit: "+"
-    preguntada_a: "all_waves"
-    track_pairing: true
-
-  - id: q_salut_percep
-    text: "总体而言，你认为自己的身体健康状况如何？"
-    escala: "1-5"
-    sentit: "+"
-    preguntada_a: "all_waves"
-    track_pairing: true
-
-  - id: q_habit_esport
-    text: "你平时养成规律运动的习惯困难吗？"
-    escala: "1-5"
-    sentit: "-"          # 值越大越困难 = 越差
-    preguntada_a: "no_sport_lastweek"   # 仅过去一周 0 天者分支回答
-    track_pairing: false
-
-  - id: q_ostatges
-    text: "你对 SAF 的整体感受？"
-    escala: "1-5"
-    sentit: "+"
-    preguntada_a: "all_waves"
-    track_pairing: false
-
-# 分母定义（Denominator）：每个指标自带 n 与对比组
-denominators:
-  - metric: freq_salut_essent
-    by: q_freq_esport
-    groups: ["0天","1天","2-3天","4-5天"]
-    compare_against: "all_waves"
-    min_n: 30            # 小于 30 不展示（隐私阈值）
-
-  - metric: pertinencia_generes
-    by: q_retorn_pertin
-    groups: ["gender:m","gender:f","other"]
-    compare_against: "all_waves"
-    min_n: 30
-
-# 波次：邀请数/回应率 = invitats / respostes
-waves:
+# —— 波次标识（顶层 wave）与纵向面板（T0 baseline, T1 复测锚点）——
+wave: "L2Q3-2026"
+wave_panel:
   - wave_id: T0
+    role: "新成员入组 / 基线"
     data_inici: "2026-09-15"
     canal: "web"
     invitats: 400
     respostes: 280
   - wave_id: T1
+    role: "自愿复测 / 纵向锚点"
     data_inici: "2026-11-20"
     canal: "web"
     invitats: 280
     respostes: 205
+
+# —— 被调查者级元数据（col0 / col1）——
+respondent:
+  respondent_id:
+    type: "string/enum"
+    scope: "all"
+    col: 0
+    description: "匿名 respondent，不含姓名/学号/邮箱（隐私）"
+  wave:
+    type: "string/enum"
+    scope: "all"
+    col: 1
+    description: "统一波次（元数据）"
+
+# —— 题号一字段索引（question[]，简洁索引；questions[] 为详细定义）——
+question:
+  - generes
+  - situacio
+  - abonat
+  - frecuencia
+  - habit_estar
+  - salut_fisica
+  - estat_emocional
+  - son_hores
+  - son_qualitat
+  - estres
+  - beneficis
+  - pertinenca
+  - obstacle_1
+  - obstacle_2
+  - obstacle_3
+  - obstacle_4
+  - obstacle_5
+  - obstacle_6
+  - obstacle_7
+  - intencio_1
+  - intencio_2
+  - intencio_3
+  - intencio_4
+  - canvi_benestar
+
+# —— 详细 question 定义（17 类）——
+questions:
+  # A1 性别（全体元数据）
+  - question_id: generes
+    escalar: categorical
+    sentit: null
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Home", value: 1}          # 男
+      - {label: "Dona", value: 2}          # 女
+      - {label: "No binari", value: 3}     # 非二元
+      - {label: "Sense opinions", value: 4}  # 无意见
+    denominators: all_valid
+    estat: "pertinencia_generes"
+    description: "A1 性别，全体有效回收，用于性别×归属跨表。"
+
+  # A3 运动情况（分组枢纽）：situacio∈{1,2}→运动者 movers_n；situacio=3→非运动者 nonmovers_n
+  - question_id: situacio
+    escalar: categorical
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "Mol habitual", value: 1}       # 规律/常运动（分组枢纽=运动者）
+      - {label: "Aquest any he començat", value: 2}  # 近一年才开始（=运动者）
+      - {label: "No Fa esport", value: 3}       # 不运动（=非运动者，分支至 E1/E2）
+    denominators: all_valid
+    estat: "situacio_grups"
+    description: "A3 运动情况，分组枢纽；注释说明分母规则：{1,2}→movers_n，{3}→nonmovers_n。"
+
+  # A4 是否会员（全体）
+  - question_id: abonat
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Sí", value: 1}
+      - {label: "No", value: 2}
+    denominators: abonat_sisi
+    estat: "abonat_grups"
+    description: "A4 是否会员，全体，分母为会员（Sí）数。"
+
+  # B1 运动频率（仅运动者，缺 106）
+  - question_id: frecuencia
+    escalar: ordinal
+    sentit: positive
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "1 cop setmana", value: 1}      # 1次/周
+      - {label: "2-3 cop setmana", value: 2}    # 2-3次/周
+      - {label: "4-5 cop setmana", value: 3}    # 4-5次/周
+      - {label: "Més de 5 cop setmana", value: 4}  # 超5次/周（4天阈值判定）
+    denominators: movers_n
+    estat: "freq_esport"
+    description: "B1 运动频率，仅运动者 n(A3∈1,2)，缺 106；4 天阈值判定达标。"
+
+  # B3 是否达标（仅运动者）
+  - question_id: habit_estar
+    escalar: ordinal
+    sentit: positive
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No assolit", value: 1}   # 没达到
+      - {label: "Gairebé assolit", value: 2}  # 基本达到
+      - {label: "Assolit", value: 3}      # 达到
+    denominators: movers_n
+    estat: "habit_arrel"
+    description: "B3 是否达标，仅运动者；1=没达到,2=基本达到,3=达到。"
+
+  # C1 身体健康（全体，正向）
+  - question_id: salut_fisica
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Mol malament", value: 1}
+      - {label: "Malament", value: 2}
+      - {label: "Normal", value: 3}
+      - {label: "Bé", value: 4}
+      - {label: "Mol bé", value: 5}
+    denominators: all_valid
+    estat: "salut_fisica"
+    description: "C1 身体健康，全体 int 1-5，正向。"
+
+  # C2 情绪（全体，正向）
+  - question_id: estat_emocional
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Mol malament", value: 1}
+      - {label: "Malament", value: 2}
+      - {label: "Normal", value: 3}
+      - {label: "Bé", value: 4}
+      - {label: "Mol bé", value: 5}
+    denominators: all_valid
+    estat: "estat_emocional"
+    description: "C2 情绪，全体 int 1-5，正向。"
+
+  # C3 睡眠小时数（全体，区间，非单调）
+  - question_id: son_hores
+    escalar: ordinal
+    sentit: null
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "0-1 h", value: 1}
+      - {label: "2-3 h", value: 2}
+      - {label: "4-5 h", value: 3}
+      - {label: "6-7 h", value: 4}
+      - {label: "8-9 h", value: 5}
+      - {label: ">9 h", value: 6}
+    denominators: all_valid
+    estat: "son_hores"
+    description: "C3 睡眠小时数，全体 ordered int 区间；非单调（适中最佳），故 sentit=null。"
+
+  # C3 睡眠质量（全体，正向）
+  - question_id: son_qualitat
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Mol dolent", value: 1}
+      - {label: "Dolent", value: 2}
+      - {label: "Normal", value: 3}
+      - {label: "Bé", value: 4}
+      - {label: "Mol bé", value: 5}
+    denominators: all_valid
+    estat: "son_qualitat"
+    description: "C3 睡眠质量，全体 int 1-5，正向（与‘小时数’两道拆分为两个字段）。"
+
+  # C4 压力（全体，频率向，负向计分）
+  - question_id: estres
+    escalar: ordinal
+    sentit: negative
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Mai", value: 1}              # 从不
+      - {label: "Una cop / mes", value: 2}    # 每月一次
+      - {label: "2-3 cop / mes", value: 3}    # 2-3次/月
+      - {label: "Setmanal", value: 4}         # 每周
+      - {label: "Molt sovint", value: 5}      # 非常频繁
+    denominators: all_valid
+    estat: "estres_freq"
+    description: "C4 压力，全体 int 1-5 频率向（col20-23）；sentit=negative，频率越高压力越大（反向计分）。"
+
+  # C5 好处（仅运动者，正向）
+  - question_id: beneficis
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "Mol d'en contra", value: 1}
+      - {label: "D'en contra", value: 2}
+      - {label: "Neutral", value: 3}
+      - {label: "D'acord", value: 4}
+      - {label: "Mol d'acord", value: 5}
+    denominators: movers_n
+    estat: "benefici_movers"
+    description: "C5 好处，仅运动者 n(运动者) int 1-5，正向（col11-15）。"
+
+  # D1 联结/归属感（全体，正向）
+  - question_id: pertinenca
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined
+    track_pairing: false
+    options:
+      - {label: "Mol d'en contra", value: 1}
+      - {label: "D'en contra", value: 2}
+      - {label: "Neutral", value: 3}
+      - {label: "D'acord", value: 4}
+      - {label: "Mol d'acord", value: 5}
+    denominators: all_valid
+    estat: "pertinencia"
+    description: "D1 联结/归属感，全体 int 1-5，正向（col27-30）。"
+
+  # E1 障碍（多选拆 7 个独立 0/1 字段，仅非运动者）
+  - question_id: obstacle_1
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No", value: 0}
+      - {label: "Sí", value: 1}
+    denominators: nonmovers_n
+    estat: "obstacles_noesport"
+    description: "E1-1 障碍=没有时间/学习忙；仅非运动者，0/1 字段。"
+  - question_id: obstacle_2
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No", value: 0}
+      - {label: "Sí", value: 1}
+    denominators: nonmovers_n
+    estat: "obstacles_noesport"
+    description: "E1-2 障碍=距离远/无交通；仅非运动者，0/1 字段。"
+  - question_id: obstacle_3
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No", value: 0}
+      - {label: "Sí", value: 1}
+    denominators: nonmovers_n
+    estat: "obstacles_noesport"
+    description: "E1-3 障碍=费用高/无会员优惠；仅非运动者，0/1 字段。"
+  - question_id: obstacle_4
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No", value: 0}
+      - {label: "Sí", value: 1}
+    denominators: nonmovers_n
+    estat: "obstacles_noesport"
+    description: "E1-4 障碍=不感兴趣/无偏好运动；仅非运动者，0/1 字段。"
+  - question_id: obstacle_5
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No", value: 0}
+      - {label: "Sí", value: 1}
+    denominators: nonmovers_n
+    estat: "obstacles_noesport"
+    description: "E1-5 障碍=身体原因/伤病；仅非运动者，0/1 字段。"
+  - question_id: obstacle_6
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No", value: 0}
+      - {label: "Sí", value: 1}
+    denominators: nonmovers_n
+    estat: "obstacles_noesport"
+    description: "E1-6 障碍=缺少伙伴/无人同行；仅非运动者，0/1 字段。"
+  - question_id: obstacle_7
+    escalar: binary
+    sentit: null
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No", value: 0}
+      - {label: "Sí", value: 1}
+    denominators: nonmovers_n
+    estat: "obstacles_noesport"
+    description: "E1-7 障碍=缺乏更衣室/设施；仅非运动者，0/1 字段。"
+
+  # E2 意向（4 类激励拆字段，仅非运动者，int 1-5）
+  - question_id: intencio_1
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No gens d'intenció", value: 1}
+      - {label: "Poca intenció", value: 2}
+      - {label: "Neutral", value: 3}
+      - {label: "Molta intenció", value: 4}
+      - {label: "Moltíssima intenció", value: 5}
+    denominators: nonmovers_n
+    estat: "intencio_noesport"
+    description: "E2-1 意向=价格/会员优惠激励；仅非运动者，int 1-5，正向。"
+  - question_id: intencio_2
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No gens d'intenció", value: 1}
+      - {label: "Poca intenció", value: 2}
+      - {label: "Neutral", value: 3}
+      - {label: "Molta intenció", value: 4}
+      - {label: "Moltíssima intenció", value: 5}
+    denominators: nonmovers_n
+    estat: "intencio_noesport"
+    description: "E2-2 意向=时间/课程灵活性激励；仅非运动者，int 1-5，正向。"
+  - question_id: intencio_3
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No gens d'intenció", value: 1}
+      - {label: "Poca intenció", value: 2}
+      - {label: "Neutral", value: 3}
+      - {label: "Molta intenció", value: 4}
+      - {label: "Moltíssima intenció", value: 5}
+    denominators: nonmovers_n
+    estat: "intencio_noesport"
+    description: "E2-3 意向=社交/同伴/社群激励；仅非运动者，int 1-5，正向。"
+  - question_id: intencio_4
+    escalar: interval
+    sentit: positive
+    pregunta_a: well_defined_n_excluded
+    track_pairing: false
+    options:
+      - {label: "No gens d'intenció", value: 1}
+      - {label: "Poca intenció", value: 2}
+      - {label: "Neutral", value: 3}
+      - {label: "Molta intenció", value: 4}
+      - {label: "Moltíssima intenció", value: 5}
+    denominators: nonmovers_n
+    estat: "intencio_noesport"
+    description: "E2-4 意向=健康收益/指导激励；仅非运动者，int 1-5，正向。"
+
+  # E3 纵向锚点（全体，一年前比较，负→正）
+  - question_id: canvi_benestar
+    escalar: ordinal
+    sentit: positive
+    pregunta_a: well_defined
+    track_pairing: true
+    options:
+      - {label: "Mol pitjor", value: 1}  # 一年前更差（原始负向）
+      - {label: "Pitjor", value: 2}
+      - {label: "Igual", value: 3}
+      - {label: "Millor", value: 4}
+      - {label: "Mol millor", value: 5}  # 现在更好（正向）
+    denominators: all_valid
+    estat: "canvi_benestar_panel"
+    description: "E3 纵向锚点，全体 enum 1-5；与一年前比较，负→正（越大越改善）；track_pairing=true。"
+
+# —— 分母定义（Denominator）——
+denominators:
+  - name: all_valid
+    scope: "全体有效回收"
+    n_min_conclusion: 30
+    n_min_privacy: 30
+    description: "全体有效回收分母，适用于全体题（A1/A3/A4/C1/C2/C3/C4/D1/E3）。"
+  - name: movers_n
+    scope: "运动者 = A3∈{规律,近一年开始}（situacio∈{1,2}）"
+    n_min_conclusion: 30
+    n_min_privacy: 30
+    description: "运动者分母，适用于 B1/B3/C5（运动者口径）。缺 106 条。"
+  - name: abonat_sisi
+    scope: "会员分母 = A4=Sí"
+    n_min_conclusion: 30
+    n_min_privacy: 30
+    description: "会员（Sí）分母，用于 A4 会员占比。"
+  - name: nonmovers_n
+    scope: "非运动者 = A3=不运动（situacio=3）"
+    n_min_conclusion: 30
+    n_min_privacy: 30
+    target_n: 150
+    description: "非运动者分母，用于 E1 障碍/E2 意向；n_min_conclusion 须保证 ≥30，目标 ≥150。"
+
+# —— 指标 / 统计表（Metric）—— 供各 question.estat 引用
+metrics:
+  - metric: situacio_grups
+    by: situacio
+    denominator: all_valid
+    table: situacio_grups
+    groups: ["1 规律", "2 近一年", "3 不运动"]
+    min_n: 30
+  - metric: abonat_grups
+    by: abonat
+    denominator: abonat_sisi
+    table: abonat_grups
+    groups: ["Sí", "No"]
+    min_n: 30
+  - metric: freq_esport
+    by: frecuencia
+    denominator: movers_n
+    table: freq_esport
+    groups: ["1 次/周", "2-3 次/周", "4-5 次/周", "超5 次/周"]
+    min_n: 30
+  - metric: habit_arrel
+    by: habit_estar
+    denominator: movers_n
+    table: habit_arrel
+    groups: ["没达到", "基本达到", "达到"]
+    min_n: 30
+  - metric: salut_fisica
+    by: salut_fisica
+    denominator: all_valid
+    table: salut_fisica
+    min_n: 30
+  - metric: estat_emocional
+    by: estat_emocional
+    denominator: all_valid
+    table: estat_emocional
+    min_n: 30
+  - metric: son_hores
+    by: son_hores
+    denominator: all_valid
+    table: son_hores
+    min_n: 30
+  - metric: son_qualitat
+    by: son_qualitat
+    denominator: all_valid
+    table: son_qualitat
+    min_n: 30
+  - metric: estres_freq
+    by: estres
+    denominator: all_valid
+    table: estres_freq
+    min_n: 30
+    sentit: negative
+  - metric: benefici_movers
+    by: beneficis
+    denominator: movers_n
+    table: benefici_movers
+    min_n: 30
+  - metric: pertinencia_generes
+    by: pertinenca
+    split_by: generes
+    denominator: all_valid
+    table: pertinencia_generes
+    groups: ["male", "female", "other"]
+    min_n: 30
+  - metric: pertinencia
+    by: pertinenca
+    denominator: all_valid
+    table: pertinencia
+    min_n: 30
+  - metric: obstacles_noesport
+    by: [obstacle_1, obstacle_2, obstacle_3, obstacle_4, obstacle_5, obstacle_6, obstacle_7]
+    denominator: nonmovers_n
+    table: obstacles_noesport
+    min_n: 30
+  - metric: intencio_noesport
+    by: [intencio_1, intencio_2, intencio_3, intencio_4]
+    denominator: nonmovers_n
+    table: intencio_noesport
+    min_n: 30
+  - metric: canvi_benestar_panel
+    by: canvi_benestar
+    denominator: all_valid
+    table: canvi_benestar_panel
+    track_pairing: true
+    min_n: 30
+    sentit: positive
