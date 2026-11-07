@@ -4,7 +4,7 @@ L2Q3 数据模型校验器 / 声明检查器（真校验版）
 用法:
     python validate.py
 
-本文件把 review_repo/schema.yaml 当作唯一真实数据模型来源，用内置模拟数据
+本文件把 `schema.yaml` 当作唯一真实数据模型来源，用内置模拟数据
 生成「长表」(Response, 含 estat 与处理后的值 processed)，计算每个指标的
 Denominator(n) 与 Metric 值，并跑一组「声明检查」：
 
@@ -95,16 +95,24 @@ def build_mock():
             # C5 好处（运动者，正向）
             add(rid, "T0", "beneficis", ((i % 4) + 2))
         else:
-            # E1 障碍 / E2 意向（非运动者）
+            # E1 障碍 / E2 意向（非运动者）—— 覆盖全部 7 障碍 + 4 意向字段
             add(rid, "T0", "obstacle_1", 1 if i % 2 else 0)
             add(rid, "T0", "obstacle_2", 1 if i % 3 else 0)
             add(rid, "T0", "obstacle_3", 1 if i % 4 else 0)
+            add(rid, "T0", "obstacle_4", 1 if i % 5 else 0)
+            add(rid, "T0", "obstacle_5", 1 if i % 6 else 0)
+            add(rid, "T0", "obstacle_6", 1 if i % 7 else 0)
+            add(rid, "T0", "obstacle_7", 1 if (i % 2 == 0 and i % 3 == 0) else 0)
             add(rid, "T0", "intencio_1", (i % 5) + 1)
             add(rid, "T0", "intencio_2", ((i * 2) % 5) + 1)
+            add(rid, "T0", "intencio_3", ((i * 3) % 5) + 1)
+            add(rid, "T0", "intencio_4", ((i * 4) % 5) + 1)
 
         # C1/C2/C3/C4 全体（健康、情绪、睡眠、压力）
         add(rid, "T0", "salut_fisica", (i % 5) + 1)
         add(rid, "T0", "estat_emocional", ((i * 2) % 5) + 1)
+        # C3 睡眠小时数：全体 ordered int 1..6（原 mock 漏掉此字段）
+        add(rid, "T0", "son_hores", ((i * 3) % 6) + 1)
         add(rid, "T0", "son_qualitat", ((i * 4) % 5) + 1)
         # C4 estres：负向。正常处理应翻成正向 processed = 6 - raw。
         estres_raw = ((i * 3) % 5) + 1
@@ -149,6 +157,12 @@ def freq_bin(freq):
 # 各 metric 的 value -> 组名 映射（来自 schema 语义）
 SITU_GROUP = {1: "1 规律", 2: "2 近一年", 3: "3 不运动"}
 ABONAT_GROUP = {1: "Sí", 2: "No"}
+# generes → metric 分组标签（pertinencia_generes 的 split_by generes 用）
+GENDER_LABEL = {1: "male", 2: "female", 3: "other", 4: "other"}
+
+# 判定某字段是否为 0/1 binary（多字段指标据此报 Sí 占比）
+def is_binary(fid):
+    return QUESTIONS.get(fid, {}).get("escalar") == "binary"
 
 
 # ==========================================================================
@@ -178,33 +192,55 @@ for rid in sorted({r["respondent_id"] for r in STAT_LIST})[:8]:
 # 2) 分母 + 指标值（按 schema metrics 的真实定义跑）
 # ============================================================================
 print("\n== Denominator + Metric ==")
-metric_results = []   # (metric, group, n, ok) 供检查 #3 使用
+metric_results = []   # (metric, label, n, ok, min_n, denominator) 供检查 #3 使用
 for m in SCHEMA["metrics"]:
     by = m["by"]
     min_n = m.get("min_n", MIN_N)
     groups = m.get("groups")
-    # 取该题全体有效答案（processed 用于出指标；按 by 归类）
-    vals = [(r["respondent_id"], r["processed"]) for r in STAT_LIST
-            if r["question_id"] == by and r["estat"] == "resposta"]
+    denom = m.get("denominator")
 
-    group_labels = groups if groups else ["全部"]
-    print(f"\n  [{m['metric']}] by={by} denominator={m.get('denominator')}")
-    for grp in group_labels:
-        if by == "frecuencia":
-            vals_grp = [v for (_rid, v) in vals if freq_bin(v) == grp]
-        elif by == "situacio":
-            vals_grp = [v for (_rid, v) in vals if SITU_GROUP.get(v) == grp]
-        elif by == "abonat":
-            vals_grp = [v for (_rid, v) in vals if ABONAT_GROUP.get(v) == grp]
+    # by 可能是单字段（str）或多字段（list，如 E1 障碍 / E2 意向 拆字段）。
+    # 修复：多字段指标必须逐字段出指标；旧的 `question_id == by`（str == list）
+    # 会恒为 False，导致这些指标的 n 恒为 0 —— 这正是 L2Q3 最关键的原创模块。
+    if isinstance(by, list):
+        fields = list(by)
+        # 每字段一行：binary → 报 Sí 占比；interval/ordinal → 报均值
+        disp = [(f, "Sí 占比" if is_binary(f) else "均值") for f in fields]
+    else:
+        fields = [by]
+        base_groups = groups if groups else ["全部"]
+        disp = [(by, g) for g in base_groups]
+
+    print(f"\n  [{m['metric']}] by={by} denominator={denom}")
+    for f, label in disp:
+        vals = [(r["respondent_id"], r["processed"]) for r in STAT_LIST
+                if r["question_id"] == f and r["estat"] == "resposta"]
+
+        if not isinstance(by, list):
+            if by == "frecuencia":
+                vals_grp = [v for (_rid, v) in vals if freq_bin(v) == label]
+            elif by == "situacio":
+                vals_grp = [v for (_rid, v) in vals if SITU_GROUP.get(v) == label]
+            elif by == "abonat":
+                vals_grp = [v for (_rid, v) in vals if ABONAT_GROUP.get(v) == label]
+            elif m.get("split_by") == "generes":
+                vals_grp = [v for (_rid, v) in vals if GENDER_LABEL.get(v, "other") == label]
+            else:
+                vals_grp = [v for (_rid, v) in vals]   # 无分箱指标：整组
         else:
-            vals_grp = [v for (_rid, v) in vals]   # 无分箱指标：整组
+            vals_grp = [v for (_rid, v) in vals]
 
         n = len(vals_grp)
-        mean = round(sum(vals_grp) / n, 2) if n else math.nan
+        if n == 0:
+            mean = math.nan
+        elif is_binary(f):
+            mean = round(100.0 * sum(1 for v in vals_grp if v == 1) / n, 2)  # Sí 占比
+        else:
+            mean = round(sum(vals_grp) / n, 2)
         ok = n >= min_n
         flag = "  ⚠ n<30 不展示" if not ok else ""
-        print(f"    {grp:<10} n={n:<3} mean={str(mean)}{flag}")
-        metric_results.append((m["metric"], grp, n, ok, min_n))
+        print(f"    {label:<12} n={n:<3} {mean}{flag}")
+        metric_results.append((m["metric"], label, n, ok, min_n, denom))
 
 # ============================================================================
 # 3) 纵向配对：T0→T1 归属/幸福感变化（仅复测子集）
@@ -250,12 +286,25 @@ if len(WAVE_PANEL) >= 2:
             break
     check_wave = all_waves
 
-# --- (c) 小于 30 的分组未展示为结论 ---
-# 真实判断：遍历上一步生成的指标结果，凡是 n<min_n 的分组都必须被标记 ⚠；
-# ⚠ 标记在上面的打印中由 flag（基于 not ok=n<min_n）自动保证；这里验证确实
-# 存在 n<min_n(r[4]) 的分组（说明测试覆盖到了小样本），且它们都被正确标记。
-n_below = [r for r in metric_results if r[2] < r[4]]
-check_n30 = len(n_below) > 0
+# --- (c) 全体有效分母（all_valid）的 headline 指标，基础样本必须 ≥ n_min ---
+# 真实判断：对「全体有效、不分箱、单字段」的指标，其基础样本 n 必须达到 n_min，
+# 否则该框架永远无法对这类主指标下结论（这是框架层面的硬约束，不是偶然）。
+# 达不到就列入 problems，使 check_n30 成为有约束力的断言，而非「存在一个小样本」。
+n_ok_all_valid = True
+below_allvalid = []
+for mm in SCHEMA["metrics"]:
+    if mm.get("denominator") != "all_valid":
+        continue
+    if isinstance(mm["by"], list) or mm.get("groups") or mm.get("split_by"):
+        continue
+    n = len([r for r in STAT_LIST if r["question_id"] == mm["by"] and r["estat"] == "resposta"])
+    min_n = mm.get("min_n", MIN_N)
+    if n < min_n:
+        n_ok_all_valid = False
+        below_allvalid.append((mm["metric"], n, min_n))
+check_n30 = n_ok_all_valid
+for x in below_allvalid:
+    problems.append(f"全体有效分母指标 {x[0]} 基础样本 n={x[1]} < n_min={x[2]}，框架无法下结论")
 
 # --- (d) 量表方向已处理 ---
 # 真实判断：对每条 escalar 为 ordinal/interval 且 sentit=negative 的题目，
