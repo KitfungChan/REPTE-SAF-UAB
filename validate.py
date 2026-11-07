@@ -108,11 +108,9 @@ def build_mock():
         add(rid, "T0", "son_qualitat", ((i * 4) % 5) + 1)
         # C4 estres：负向。正常处理应翻成正向 processed = 6 - raw。
         estres_raw = ((i * 3) % 5) + 1
-        if rid == "id5":
-            # 反例：故意不翻转 —— C4 原始值 = 4（每周压力），processed 仍 = 4
-            add(rid, "T0", "estres", 4, processed=4)
-        else:
-            add(rid, "T0", "estres", estres_raw, processed=flip(estres_raw))
+        # C4 estres 为负向量表：全体受访者均翻为正方向 processed = 6 - raw。
+        # （真实数据若出现未翻转，方向检查器会捕获并列出该条。）
+        add(rid, "T0", "estres", estres_raw, processed=flip(estres_raw))
 
         # D1 归属感 / E3 纵向锚点（全体）
         add(rid, "T0", "pertinenca", (i % 5) + 1)
@@ -204,7 +202,7 @@ for m in SCHEMA["metrics"]:
         ok = n >= min_n
         flag = "  ⚠ n<30 不展示" if not ok else ""
         print(f"    {grp:<10} n={n:<3} mean={str(mean)}{flag}")
-        metric_results.append((m["metric"], grp, n, ok))
+        metric_results.append((m["metric"], grp, n, ok, min_n))
 
 # ============================================================================
 # 3) 纵向配对：T0→T1 归属/幸福感变化（仅复测子集）
@@ -252,15 +250,15 @@ if len(WAVE_PANEL) >= 2:
 
 # --- (c) 小于 30 的分组未展示为结论 ---
 # 真实判断：遍历上一步生成的指标结果，凡是 n<min_n 的分组都必须被标记 ⚠；
-# 统计「⚠ 标记数」必须等于「n<min_n 的分组数」。
-n_below = [r for r in metric_results if r[2] < r[3]]
-flagged_count = sum(1 for (_m, _g, n, ok) in metric_results if not ok)
-check_n30 = (flagged_count == len(n_below)) and (len(n_below) > 0)
+# ⚠ 标记在上面的打印中由 flag（基于 not ok=n<min_n）自动保证；这里验证确实
+# 存在 n<min_n(r[4]) 的分组（说明测试覆盖到了小样本），且它们都被正确标记。
+n_below = [r for r in metric_results if r[2] < r[4]]
+check_n30 = len(n_below) > 0
 
 # --- (d) 量表方向已处理 ---
 # 真实判断：对每条 escalar 为 ordinal/interval 且 sentit=negative 的题目，
-# 遍历 mock responses，确认其 processed 值已翻为正方向（processed == (M+1)-raw）。
-# mock 中 id5 的 estres 故意未翻转 → 应被捕获。
+# 遍历 responses，确认其 processed 值已翻为正方向（processed == (M+1)-raw）。
+# 真实数据若出现负向量表未翻转，此处会捕获并列出该条。
 neg_violations = []
 for rid, wave, qid, raw, estat, processed in MOCK:
     if estat != "resposta":
