@@ -2,6 +2,11 @@
 # L2Q3 数据模型 schema（第二次测量体系 — 机读完整版）
 # 覆盖问卷全部 16 题（含新增 C6 公平/可及性题），含 E1/E2 拆分子字段，共 18 类 question。
 #
+# ⚠️ 题数 vs 字段数（避免歧义）：问卷按“矩阵题=1 题”计 = 15 题（攻坚方案 §4）/ 16 题
+#     （含 C6）；但为机读，E1(障碍) 拆 7 字段、E2(意向) 拆 4 字段、C3(睡眠) 拆 2 字段，
+#     故字段级共 ~25 个 question_id（见 question_field_map.md）。“10–15 preguntes” 按矩阵计，
+#     本 schema 的字段拆分属实现细节，不改变题数口径。
+#
 # 每个 question 对象包含且仅含以下键：
 #   question_id   字段 ID（如 generes, situacio, obstacle_1, intencio_1, ...）
 #   escalar        ordinal | binary | categorical | interval | ratio
