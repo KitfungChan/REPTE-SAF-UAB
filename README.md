@@ -44,3 +44,7 @@
 
 - 真实 SAF 数据不入仓（见 `.gitignore`）
 - 提交信息用简短中英文说明改动
+
+## 参考文献
+
+Harvey S B, Øverland S, Hatch S L, et al. Exercise and the prevention of depression: results of the HUNT cohort study[J]. American journal of psychiatry, 2018, 175(1): 28-36.
